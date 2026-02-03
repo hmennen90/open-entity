@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__jetbrains__list_directory_tree",
+      "Bash(php artisan test:*)",
+      "Bash(composer install:*)",
+      "Bash(chmod:*)",
+      "Bash(composer dump-autoload:*)",
+      "Bash(php artisan:*)",
+      "mcp__jetbrains__get_file_text_by_path",
+      "Bash(docker compose:*)",
+      "Bash(./setup.sh:*)",
+      "Bash(curl:*)",
+      "Bash(/usr/bin/curl:*)"
+    ]
+  }
+}

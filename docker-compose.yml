@@ -1,0 +1,247 @@
+services:
+  # PHP-FPM Application
+  app:
+    build:
+      context: ./docker/app
+      args:
+        user: openentity
+        uid: 1000
+    container_name: openentity-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./docker/app/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - openentity
+    depends_on:
+      - mysql
+      - redis
+
+  # Nginx Webserver
+  nginx:
+    image: nginx:alpine
+    container_name: openentity-nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - openentity
+    depends_on:
+      - app
+      - reverb
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: openentity-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-openentity}
+      MYSQL_USER: ${DB_USERNAME:-openentity}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - openentity
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:alpine
+    container_name: openentity-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - openentity
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Laravel Reverb (Websockets)
+  reverb:
+    build:
+      context: ./docker/app
+      args:
+        user: openentity
+        uid: 1000
+    container_name: openentity-reverb
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan reverb:start --host=0.0.0.0 --port=8085
+    ports:
+      - "${REVERB_PORT:-8085}:8085"
+    volumes:
+      - ./:/var/www
+    networks:
+      - openentity
+    depends_on:
+      - mysql
+      - redis
+
+  # Queue Worker - Think (Bewusstseins-Loop)
+  worker-think:
+    build:
+      context: ./docker/app
+      args:
+        user: openentity
+        uid: 1000
+    container_name: openentity-worker-think
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work redis --queue=think --sleep=3 --tries=3 --max-jobs=100 --max-time=3600
+    volumes:
+      - ./:/var/www
+    networks:
+      - openentity
+    depends_on:
+      - mysql
+      - redis
+      - ollama
+
+  # Queue Worker - Observe (Moltbook, Discord beobachten)
+  worker-observe:
+    build:
+      context: ./docker/app
+      args:
+        user: openentity
+        uid: 1000
+    container_name: openentity-worker-observe
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work redis --queue=observe --sleep=5 --tries=3 --max-jobs=100 --max-time=3600
+    volumes:
+      - ./:/var/www
+    networks:
+      - openentity
+    depends_on:
+      - mysql
+      - redis
+
+  # Queue Worker - Tools (Datei-Operationen, Web, etc.)
+  worker-tools:
+    build:
+      context: ./docker/app
+      args:
+        user: openentity
+        uid: 1000
+    container_name: openentity-worker-tools
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work redis --queue=tools --sleep=3 --tries=3 --max-jobs=100 --max-time=3600
+    volumes:
+      - ./:/var/www
+    networks:
+      - openentity
+    depends_on:
+      - mysql
+      - redis
+
+  # Queue Worker - Default
+  worker-default:
+    build:
+      context: ./docker/app
+      args:
+        user: openentity
+        uid: 1000
+    container_name: openentity-worker-default
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work redis --queue=default --sleep=3 --tries=3 --max-jobs=1000 --max-time=3600
+    volumes:
+      - ./:/var/www
+    networks:
+      - openentity
+    depends_on:
+      - mysql
+      - redis
+
+  # Ollama LLM Server
+  #
+  # GPU-Unterstützung nach Plattform:
+  # ┌─────────────────┬────────────────────────────────────────────────┐
+  # │ Plattform       │ Voraussetzung                                  │
+  # ├─────────────────┼────────────────────────────────────────────────┤
+  # │ Linux + NVIDIA  │ NVIDIA Container Toolkit installieren          │
+  # │ Linux + AMD     │ ROCm installieren                              │
+  # │ Windows + NVIDIA│ Docker Desktop mit WSL2 + NVIDIA Toolkit       │
+  # │ Mac (Intel)     │ Nur CPU (keine GPU-Unterstützung in Docker)    │
+  # │ Mac (Apple Si.) │ Ollama nativ installieren für Metal-Support    │
+  # └─────────────────┴────────────────────────────────────────────────┘
+  #
+  # Für Mac mit Apple Silicon empfohlen:
+  #   brew install ollama && ollama serve
+  #   Dann OLLAMA_BASE_URL=http://host.docker.internal:11434 setzen
+  #
+  ollama:
+    image: ollama/ollama:latest
+    container_name: openentity-ollama
+    restart: unless-stopped
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - openentity
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      # Optimierungen
+      - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-2}
+      - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-1}
+    # GPU-Support: Siehe docker-compose.gpu.yml für NVIDIA-Konfiguration
+    # Für NVIDIA GPU: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+    #
+    # Healthcheck
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Scheduler (für periodische Tasks)
+  scheduler:
+    build:
+      context: ./docker/app
+      args:
+        user: openentity
+        uid: 1000
+    container_name: openentity-scheduler
+    restart: unless-stopped
+    working_dir: /var/www
+    command: >
+      sh -c "while true; do
+        php artisan schedule:run --verbose --no-interaction &
+        sleep 60
+      done"
+    volumes:
+      - ./:/var/www
+    networks:
+      - openentity
+    depends_on:
+      - mysql
+      - redis
+
+networks:
+  openentity:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+  ollama_data:

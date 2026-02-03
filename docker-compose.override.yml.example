@@ -1,0 +1,47 @@
+# Docker Compose Override - Plattform-spezifische Konfiguration
+#
+# Kopiere die passende Konfiguration nach docker-compose.override.yml
+# Diese Datei wird automatisch von Docker Compose geladen.
+
+# ============================================================================
+# OPTION 1: CPU-Only (Mac Intel, ältere Systeme ohne GPU)
+# ============================================================================
+# services:
+#   ollama:
+#     deploy: {}  # Entfernt GPU-Reservierung
+
+# ============================================================================
+# OPTION 2: Mac mit Apple Silicon (empfohlen: Ollama nativ)
+# ============================================================================
+# Installiere Ollama nativ für Metal-Beschleunigung:
+#   brew install ollama && ollama serve
+#
+# Dann in .env setzen:
+#   OLLAMA_BASE_URL=http://host.docker.internal:11434
+#
+# Und den Ollama-Container deaktivieren:
+# services:
+#   ollama:
+#     profiles: ["disabled"]
+#   worker-think:
+#     depends_on:
+#       - mysql
+#       - redis
+#       # ollama entfernt
+
+# ============================================================================
+# OPTION 3: AMD GPU (Linux mit ROCm)
+# ============================================================================
+# services:
+#   ollama:
+#     image: ollama/ollama:rocm
+#     devices:
+#       - /dev/kfd
+#       - /dev/dri
+#     deploy: {}
+
+# ============================================================================
+# OPTION 4: NVIDIA GPU (Standard - bereits in docker-compose.yml)
+# ============================================================================
+# Keine Override nötig, nur NVIDIA Container Toolkit installieren:
+#   https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html

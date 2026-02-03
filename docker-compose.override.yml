@@ -1,0 +1,16 @@
+# Docker Compose Override - Standard CPU-Fallback
+#
+# Diese Datei stellt sicher dass OpenEntity auf allen Plattformen startet.
+# Für GPU-Beschleunigung siehe docker-compose.override.yml.example
+#
+# NVIDIA GPU aktivieren:
+#   Lösche diese Datei oder ersetze mit der NVIDIA-Konfiguration
+#
+# Apple Silicon (beste Performance):
+#   brew install ollama && ollama serve
+#   Dann in .env: OLLAMA_BASE_URL=http://host.docker.internal:11434
+
+services:
+  ollama:
+    # Überschreibt die GPU-Konfiguration für universelle Kompatibilität
+    deploy: {}
