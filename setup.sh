@@ -1,5 +1,6 @@
 #!/bin/bash
-# OpenEntity Setup Script mit automatischer GPU-Erkennung und Ollama-Konfiguration
+# OpenEntity Setup Script für Linux und macOS
+# Für Windows: setup.ps1 verwenden
 
 set -e
 
@@ -115,14 +116,14 @@ if [ "$GPU_TYPE" = "none" ] && [[ "$(uname -m)" == "arm64" ]] && [[ "$(uname)" =
     echo "   Empfehlung: Ollama nativ installieren für Metal-Beschleunigung"
 fi
 
-# CPU-only Modus (Linux/Windows ohne GPU)
+# CPU-only Modus (Linux ohne GPU)
 if [ "$GPU_TYPE" = "none" ]; then
-    # System RAM ermitteln
+    # System RAM ermitteln (Linux)
     if command -v free &> /dev/null; then
         MEMORY_GB=$(free -g 2>/dev/null | awk '/^Mem:/{print $2}')
     fi
 
-    if [ "$MEMORY_GB" -eq 0 ]; then
+    if [ "$MEMORY_GB" -eq 0 ] || [ -z "$MEMORY_GB" ]; then
         MEMORY_GB=8  # Fallback
     fi
 
