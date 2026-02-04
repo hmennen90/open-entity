@@ -95,13 +95,14 @@ if [ -n "$DB_HOST" ]; then
     fi
 fi
 
-# Cache leeren bei erstem Start
+# Cache leeren und Front-End bauen bei erstem Start
 if [ ! -f "storage/.initialized" ]; then
     echo "🔧 Initial setup..."
     php artisan config:clear
     php artisan cache:clear
     php artisan view:clear
     touch storage/.initialized
+    npm run build
 fi
 
 # Übergebenen Command ausführen
