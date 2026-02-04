@@ -6,6 +6,7 @@ services:
       args:
         user: openentity
         uid: 1000
+    image: openentity-app:latest
     container_name: openentity-app
     restart: unless-stopped
     working_dir: /var/www
@@ -89,14 +90,12 @@ services:
 
   # Laravel Reverb (Websockets)
   reverb:
-    build:
-      context: ./docker/app
-      args:
-        user: openentity
-        uid: 1000
+    image: openentity-app:latest
     container_name: openentity-reverb
     restart: unless-stopped
     working_dir: /var/www
+    environment:
+      - CONTAINER_ROLE=worker
     command: php artisan reverb:start --host=0.0.0.0 --port=8085
     ports:
       - "${REVERB_PORT:-8085}:8085"
@@ -110,14 +109,12 @@ services:
 
   # Queue Worker - Think (Consciousness Loop)
   worker-think:
-    build:
-      context: ./docker/app
-      args:
-        user: openentity
-        uid: 1000
+    image: openentity-app:latest
     container_name: openentity-worker-think
     restart: unless-stopped
     working_dir: /var/www
+    environment:
+      - CONTAINER_ROLE=worker
     command: php artisan queue:work redis --queue=think --sleep=3 --tries=3 --max-jobs=100 --max-time=3600
     volumes:
       - ./:/var/www
@@ -131,14 +128,12 @@ services:
 
   # Queue Worker - Observe (Moltbook, Discord monitoring)
   worker-observe:
-    build:
-      context: ./docker/app
-      args:
-        user: openentity
-        uid: 1000
+    image: openentity-app:latest
     container_name: openentity-worker-observe
     restart: unless-stopped
     working_dir: /var/www
+    environment:
+      - CONTAINER_ROLE=worker
     command: php artisan queue:work redis --queue=observe --sleep=5 --tries=3 --max-jobs=100 --max-time=3600
     volumes:
       - ./:/var/www
@@ -150,14 +145,12 @@ services:
 
   # Queue Worker - Tools (File operations, Web, etc.)
   worker-tools:
-    build:
-      context: ./docker/app
-      args:
-        user: openentity
-        uid: 1000
+    image: openentity-app:latest
     container_name: openentity-worker-tools
     restart: unless-stopped
     working_dir: /var/www
+    environment:
+      - CONTAINER_ROLE=worker
     command: php artisan queue:work redis --queue=tools --sleep=3 --tries=3 --max-jobs=100 --max-time=3600
     volumes:
       - ./:/var/www
@@ -169,14 +162,12 @@ services:
 
   # Queue Worker - Default
   worker-default:
-    build:
-      context: ./docker/app
-      args:
-        user: openentity
-        uid: 1000
+    image: openentity-app:latest
     container_name: openentity-worker-default
     restart: unless-stopped
     working_dir: /var/www
+    environment:
+      - CONTAINER_ROLE=worker
     command: php artisan queue:work redis --queue=default --sleep=3 --tries=3 --max-jobs=1000 --max-time=3600
     volumes:
       - ./:/var/www
@@ -204,7 +195,8 @@ services:
   #   Then set OLLAMA_BASE_URL=http://host.docker.internal:11434
   #
   ollama:
-    image: ollama/ollama:latest
+    build:
+      context: ./docker/ollama
     container_name: openentity-ollama
     restart: unless-stopped
     ports:
@@ -215,30 +207,31 @@ services:
       - openentity
     environment:
       - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-}
+      - EMBEDDING_OLLAMA_MODEL=${EMBEDDING_OLLAMA_MODEL:-nomic-embed-text}
+      - OLLAMA_SKIP_PULL=${OLLAMA_SKIP_PULL:-false}
       # Optimizations
       - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-2}
       - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-1}
     # GPU Support: See docker-compose.gpu.yml for NVIDIA configuration
     # For NVIDIA GPU: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
     #
-    # Healthcheck
+    # Healthcheck - prüft ob Server UND Modelle bereit sind
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      test: ["CMD", "test", "-f", "/tmp/ollama-ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
 
   # Scheduler (for periodic tasks)
   scheduler:
-    build:
-      context: ./docker/app
-      args:
-        user: openentity
-        uid: 1000
+    image: openentity-app:latest
     container_name: openentity-scheduler
     restart: unless-stopped
     working_dir: /var/www
+    environment:
+      - CONTAINER_ROLE=worker
     command: >
       sh -c "while true; do
         php artisan schedule:run --verbose --no-interaction &

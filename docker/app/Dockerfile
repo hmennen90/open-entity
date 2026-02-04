@@ -8,6 +8,7 @@ ARG uid=1000
 RUN apt-get update && apt-get install -y \
     git \
     curl \
+    wget \
     libpng-dev \
     libonig-dev \
     libxml2-dev \

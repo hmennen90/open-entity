@@ -3,32 +3,55 @@ set -e
 
 cd /var/www
 
-# Composer-Dependencies installieren wenn vendor/ fehlt
-if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then
-    echo "📦 Installing Composer dependencies..."
-    composer install --no-interaction --prefer-dist --optimize-autoloader
-fi
+# CONTAINER_ROLE bestimmt das Verhalten:
+# - "app": Installiert Dependencies, führt Migrationen aus
+# - "worker": Wartet nur auf Dependencies
+ROLE="${CONTAINER_ROLE:-app}"
 
-# NPM-Dependencies installieren wenn node_modules/ fehlt
-if [ ! -d "node_modules" ]; then
-    echo "📦 Installing NPM dependencies..."
-    npm install
-fi
+if [ "$ROLE" = "app" ]; then
+    # === APP CONTAINER: Installiert alles ===
 
-# .env erstellen wenn nicht vorhanden
-if [ ! -f ".env" ]; then
-    if [ -f ".env.example" ]; then
-        echo "📝 Creating .env from .env.example..."
-        cp .env.example .env
-        php artisan key:generate --no-interaction
+    # Composer-Dependencies installieren wenn vendor/ fehlt
+    if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then
+        echo "📦 Installing Composer dependencies..."
+        composer install --no-interaction --prefer-dist --optimize-autoloader
     fi
+
+    # NPM-Dependencies installieren wenn node_modules/ fehlt
+    if [ ! -d "node_modules" ]; then
+        echo "📦 Installing NPM dependencies..."
+        npm install
+    fi
+
+    # .env erstellen wenn nicht vorhanden
+    if [ ! -f ".env" ]; then
+        if [ -f ".env.example" ]; then
+            echo "📝 Creating .env from .env.example..."
+            cp .env.example .env
+            php artisan key:generate --no-interaction
+        fi
+    fi
+
+    # Storage-Verzeichnisse erstellen
+    mkdir -p storage/framework/{sessions,views,cache}
+    mkdir -p storage/logs
+    mkdir -p storage/entity/{mind,memory,social,goals,tools}
+    mkdir -p bootstrap/cache
+
+else
+    # === WORKER CONTAINER: Wartet auf Dependencies ===
+
+    echo "⏳ Waiting for vendor directory..."
+    while [ ! -f "vendor/autoload.php" ]; do
+        sleep 2
+    done
+    echo "✅ Dependencies ready"
 fi
 
-# Storage-Verzeichnisse erstellen und Berechtigungen setzen
-mkdir -p storage/framework/{sessions,views,cache}
-mkdir -p storage/logs
-mkdir -p storage/entity/{mind,memory,social,goals,tools}
-mkdir -p bootstrap/cache
+# Storage-Verzeichnisse sicherstellen (für alle Container)
+mkdir -p storage/framework/{sessions,views,cache} 2>/dev/null || true
+mkdir -p storage/logs 2>/dev/null || true
+mkdir -p bootstrap/cache 2>/dev/null || true
 
 # Warte auf MySQL wenn DB_HOST gesetzt ist
 if [ -n "$DB_HOST" ]; then
@@ -42,6 +65,21 @@ if [ -n "$DB_HOST" ]; then
     if ! php artisan migrate:status --no-interaction 2>/dev/null | grep -q "Ran"; then
         echo "🔄 Running migrations..."
         php artisan migrate --force --no-interaction
+
+        # Warte auf Ollama bevor Seeder läuft (für Modellerkennung)
+        OLLAMA_URL="${OLLAMA_BASE_URL:-http://ollama:11434}"
+        echo "⏳ Waiting for Ollama..."
+        for i in {1..60}; do
+            if curl -s "$OLLAMA_URL/api/tags" > /dev/null 2>&1; then
+                echo "✅ Ollama is ready"
+                break
+            fi
+            sleep 2
+        done
+
+        # Seeder ausführen bei Erstinstallation
+        echo "🌱 Running seeders..."
+        php artisan db:seed --force --no-interaction
     fi
 fi
 

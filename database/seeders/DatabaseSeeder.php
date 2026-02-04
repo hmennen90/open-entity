@@ -11,6 +11,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Entity-spezifische Seeder könnten hier hinzugefügt werden
+        $this->call([
+            LlmConfigurationSeeder::class,
+        ]);
     }
 }
