@@ -102,8 +102,9 @@ class MindServiceTest extends TestCase
         $context = $this->mindService->toThinkContext();
 
         $this->assertIsString($context);
-        $this->assertStringContainsString('WER ICH BIN', $context);
-        $this->assertStringContainsString('MEINE ERINNERUNGEN', $context);
+        // Default language is English when no USER.md exists
+        $this->assertStringContainsString('WHO I AM', $context);
+        $this->assertStringContainsString('MY MEMORIES', $context);
     }
 
     /** @test */

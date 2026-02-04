@@ -211,8 +211,8 @@ class MemoryServiceTest extends TestCase
 
         $recentFirst = $this->memoryService->getRecent(10);
 
-        // Neueste zuerst
-        $this->assertEquals($newMemory->id, $recentFirst->first()->id);
+        // Neueste zuerst - prüfe anhand des Inhalts
+        $this->assertEquals('New memory', $recentFirst->first()->content);
     }
 
     /** @test */
