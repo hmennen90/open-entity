@@ -6,7 +6,6 @@ services:
       args:
         user: openentity
         uid: 1000
-    image: openentity-app:latest
     container_name: openentity-app
     restart: unless-stopped
     working_dir: /var/www
@@ -62,7 +61,7 @@ services:
     ports:
       - "${DB_PORT:-3306}:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./docker/data/mysql:/var/lib/mysql
     networks:
       - openentity
     healthcheck:
@@ -79,7 +78,7 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - redis_data:/data
+      - ./docker/data/redis:/data
     networks:
       - openentity
     healthcheck:
@@ -90,7 +89,8 @@ services:
 
   # Laravel Reverb (Websockets)
   reverb:
-    image: openentity-app:latest
+    build:
+      context: ./docker/app
     container_name: openentity-reverb
     restart: unless-stopped
     working_dir: /var/www
@@ -109,7 +109,8 @@ services:
 
   # Queue Worker - Think (Consciousness Loop)
   worker-think:
-    image: openentity-app:latest
+    build:
+      context: ./docker/app
     container_name: openentity-worker-think
     restart: unless-stopped
     working_dir: /var/www
@@ -128,7 +129,8 @@ services:
 
   # Queue Worker - Observe (Moltbook, Discord monitoring)
   worker-observe:
-    image: openentity-app:latest
+    build:
+      context: ./docker/app
     container_name: openentity-worker-observe
     restart: unless-stopped
     working_dir: /var/www
@@ -145,7 +147,8 @@ services:
 
   # Queue Worker - Tools (File operations, Web, etc.)
   worker-tools:
-    image: openentity-app:latest
+    build:
+      context: ./docker/app
     container_name: openentity-worker-tools
     restart: unless-stopped
     working_dir: /var/www
@@ -162,7 +165,8 @@ services:
 
   # Queue Worker - Default
   worker-default:
-    image: openentity-app:latest
+    build:
+      context: ./docker/app
     container_name: openentity-worker-default
     restart: unless-stopped
     working_dir: /var/www
@@ -178,22 +182,6 @@ services:
         condition: service_healthy
 
   # Ollama LLM Server
-  #
-  # GPU support by platform:
-  # ┌─────────────────┬────────────────────────────────────────────────┐
-  # │ Platform        │ Requirements                                   │
-  # ├─────────────────┼────────────────────────────────────────────────┤
-  # │ Linux + NVIDIA  │ Install NVIDIA Container Toolkit               │
-  # │ Linux + AMD     │ Install ROCm                                   │
-  # │ Windows + NVIDIA│ Docker Desktop with WSL2 + NVIDIA Toolkit      │
-  # │ Mac (Intel)     │ CPU only (no GPU support in Docker)            │
-  # │ Mac (Apple Si.) │ Install Ollama natively for Metal support      │
-  # └─────────────────┴────────────────────────────────────────────────┘
-  #
-  # For Mac with Apple Silicon recommended:
-  #   brew install ollama && ollama serve
-  #   Then set OLLAMA_BASE_URL=http://host.docker.internal:11434
-  #
   ollama:
     build:
       context: ./docker/ollama
@@ -202,7 +190,7 @@ services:
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:
-      - ollama_data:/root/.ollama
+      - ./docker/data/ollama:/root/.ollama
     networks:
       - openentity
     environment:
@@ -210,13 +198,9 @@ services:
       - OLLAMA_MODEL=${OLLAMA_MODEL:-}
       - EMBEDDING_OLLAMA_MODEL=${EMBEDDING_OLLAMA_MODEL:-nomic-embed-text}
       - OLLAMA_SKIP_PULL=${OLLAMA_SKIP_PULL:-false}
-      # Optimizations
       - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-2}
       - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-1}
-    # GPU Support: See docker-compose.gpu.yml for NVIDIA configuration
-    # For NVIDIA GPU: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
-    #
-    # Healthcheck - prüft ob Server UND Modelle bereit sind
+    # GPU: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
     healthcheck:
       test: ["CMD", "test", "-f", "/tmp/ollama-ready"]
       interval: 10s
@@ -226,7 +210,8 @@ services:
 
   # Scheduler (for periodic tasks)
   scheduler:
-    image: openentity-app:latest
+    build:
+      context: ./docker/app
     container_name: openentity-scheduler
     restart: unless-stopped
     working_dir: /var/www
@@ -249,7 +234,7 @@ networks:
   openentity:
     driver: bridge
 
-volumes:
-  mysql_data:
-  redis_data:
-  ollama_data:
+# Persistente Daten im Projektverzeichnis:
+# ./docker/data/mysql   - MySQL Datenbank
+# ./docker/data/redis   - Redis Cache
+# ./docker/data/ollama  - Ollama Modelle

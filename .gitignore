@@ -21,3 +21,6 @@ yarn-error.log
 
 # Docker Override (lokale Plattform-Konfiguration)
 docker-compose.override.yml
+
+# Docker persistente Daten (MySQL, Redis, Ollama)
+/docker/data/
