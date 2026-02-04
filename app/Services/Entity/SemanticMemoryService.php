@@ -24,7 +24,7 @@ class SemanticMemoryService
     /**
      * Search memories using semantic similarity.
      *
-     * @param string $query Natural language query (e.g., "What do I know about Hendrik's work?")
+     * @param string $query Natural language query (e.g., "What did I learn about programming?")
      * @param int $limit Maximum results to return
      * @param float $threshold Minimum similarity threshold (0.0 to 1.0)
      * @return Collection Memories sorted by relevance

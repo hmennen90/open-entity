@@ -13,7 +13,7 @@ class Relationship extends Model
         'name', // Name der Person/Entität
         'type', // 'human', 'entity', 'group'
         'platform', // 'web', 'moltbook', 'discord'
-        'familiarity', // 0.0 - 1.0, wie gut kennt Nova diese Person
+        'familiarity', // 0.0 - 1.0, wie gut kennt die Entity diese Person
         'affinity', // -1.0 bis 1.0, Sympathie
         'trust', // 0.0 - 1.0, Vertrauen
         'notes', // Notizen über die Person (JSON)

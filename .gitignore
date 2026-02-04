@@ -24,3 +24,6 @@ docker-compose.override.yml
 
 # Docker persistente Daten (MySQL, Redis, Ollama)
 /docker/data/
+
+# Claude Code lokale Einstellungen
+/.claude/

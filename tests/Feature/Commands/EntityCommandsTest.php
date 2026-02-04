@@ -84,7 +84,7 @@ class EntityCommandsTest extends TestCase
         file_put_contents(
             $basePath . '/personality.json',
             json_encode([
-                'name' => 'Nova',
+                'name' => 'OpenEntity',
                 'traits' => ['curiosity' => 0.8],
                 'values' => ['honesty'],
             ], JSON_PRETTY_PRINT)

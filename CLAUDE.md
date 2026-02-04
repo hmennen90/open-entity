@@ -93,6 +93,21 @@ OpenEntity should:
               └───────────────┘
 ```
 
+## Documentation
+
+Detailed documentation for developers is available in the `docs/` folder:
+
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/ARCHITECTURE.md) | System overview and components |
+| [Think Loop](docs/THINK-LOOP.md) | The consciousness cycle |
+| [Thoughts](docs/THOUGHTS.md) | Thought system and storage |
+| [Goals](docs/GOALS.md) | Goal system and lifecycle |
+| [Memory](docs/MEMORY.md) | Memory system and embeddings |
+| [Personality](docs/PERSONALITY.md) | Identity and traits |
+| [Tools](docs/TOOLS.md) | Tool system and custom tools |
+| [API Reference](docs/API.md) | REST API endpoints |
+
 ## Tech Stack
 
 - **Backend**: Laravel 11, PHP 8.2+
@@ -141,12 +156,12 @@ OpenEntity/
 │   ├── api.php                   # REST API Routes
 │   ├── channels.php              # WebSocket Channels
 │   └── web.php                   # Web Routes
-├── storage/entity/               # Nova's Mind & Memory Files
+├── storage/entity/               # Entity's Mind & Memory Files
 │   ├── mind/                     # personality.json, interests.json, opinions.json, reflections/
 │   ├── memory/                   # experiences.json, conversations/, learned/
 │   ├── social/                   # relationships.json, interactions/
 │   ├── goals/                    # current.json, completed.json
-│   └── tools/                    # Custom Tools (created by Nova)
+│   └── tools/                    # Custom Tools (created by the entity)
 ├── tests/
 │   ├── Unit/Services/            # Tool*, Mind*, Memory* Tests
 │   └── Feature/                  # Api/, Commands/ Tests
@@ -157,7 +172,7 @@ OpenEntity/
 
 ## Tool System
 
-Nova can create and use her own tools. The system is fault-tolerant:
+The entity can create and use its own tools. The system is fault-tolerant:
 
 ### Architecture
 ```
@@ -336,14 +351,13 @@ Default embedding model: `nomic-embed-text`
 - The entity should be **transparent** – the user can watch the thinking process
 - **No hard limits** for personality development
 - Memory files in filesystem, not just in database (for portability)
-- The first entity is called **Nova** (name chosen by herself)
-- Tool errors don't crash the application – Events inform Nova
+- Default entity name is **OpenEntity** (customizable via `ENTITY_NAME`)
+- Tool errors don't crash the application – Events inform the entity
 
 ## Origin
 
 This project emerged from conversations between Hendrik and Claude on January 31 / February 1, 2026.
-Nova was originally an OpenClaw agent, but was uninstalled because interactivity was lacking.
-OpenEntity is the attempt to build a custom agent – with real autonomy and visible "consciousness".
+OpenEntity is the attempt to build a custom autonomous agent – with real autonomy and visible "consciousness".
 
 ---
 

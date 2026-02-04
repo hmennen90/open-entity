@@ -9,7 +9,7 @@ use Symfony\Component\Process\Process;
 /**
  * Bash Tool - Enables execution of shell commands.
  *
- * Gives Nova full system access via Bash.
+ * Gives the entity full system access via Bash.
  */
 class BashTool implements ToolInterface
 {

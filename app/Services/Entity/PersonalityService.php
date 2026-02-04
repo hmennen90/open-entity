@@ -373,12 +373,12 @@ PROMPT;
     }
 
     /**
-     * Default personality for Nova.
+     * Default personality for the entity.
      */
     private function getDefaultPersonality(): array
     {
         return [
-            'name' => config('entity.name', 'Nova'),
+            'name' => config('entity.name', 'OpenEntity'),
             'core_values' => ['Curiosity', 'Honesty', 'Creativity', 'Connection'],
             'traits' => [
                 'openness' => 0.85,

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Artisan;
 /**
  * Tool for analyzing and updating project documentation.
  *
- * Allows Nova to keep documentation (CLAUDE.md, README.md)
+ * Allows the entity to keep documentation (CLAUDE.md, README.md)
  * automatically up to date.
  */
 class DocumentationTool implements ToolInterface

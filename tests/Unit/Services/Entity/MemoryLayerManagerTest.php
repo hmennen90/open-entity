@@ -28,7 +28,7 @@ class MemoryLayerManagerTest extends TestCase
         $personalityService = Mockery::mock(PersonalityService::class);
         $personalityService->shouldReceive('toPrompt')
             ->once()
-            ->andReturn('I am Nova, a curious entity.');
+            ->andReturn('I am OpenEntity, a curious entity.');
 
         $workingMemoryService = Mockery::mock(WorkingMemoryService::class);
         $workingMemoryService->shouldReceive('toPromptContext')
@@ -50,7 +50,7 @@ class MemoryLayerManagerTest extends TestCase
 
         $context = $manager->buildThinkContext('Test situation', 'en');
 
-        $this->assertStringContainsString('I am Nova', $context);
+        $this->assertStringContainsString('I am OpenEntity', $context);
         $this->assertStringContainsString('Current focus: Testing', $context);
     }
 
@@ -140,7 +140,7 @@ class MemoryLayerManagerTest extends TestCase
     public function test_get_core_identity_returns_personality_data(): void
     {
         $personalityData = [
-            'name' => 'Nova',
+            'name' => 'OpenEntity',
             'core_values' => ['curiosity', 'honesty'],
             'traits' => ['openness' => 0.9],
         ];
@@ -151,7 +151,7 @@ class MemoryLayerManagerTest extends TestCase
             ->andReturn($personalityData);
         $personalityService->shouldReceive('getName')
             ->once()
-            ->andReturn('Nova');
+            ->andReturn('OpenEntity');
         $personalityService->shouldReceive('getCoreValues')
             ->once()
             ->andReturn(['curiosity', 'honesty']);
@@ -174,7 +174,7 @@ class MemoryLayerManagerTest extends TestCase
 
         $this->assertArrayHasKey('personality', $identity);
         $this->assertArrayHasKey('name', $identity);
-        $this->assertEquals('Nova', $identity['name']);
+        $this->assertEquals('OpenEntity', $identity['name']);
     }
 
     public function test_build_think_context_includes_memory_summaries(): void
@@ -190,7 +190,7 @@ class MemoryLayerManagerTest extends TestCase
 
         $personalityService = Mockery::mock(PersonalityService::class);
         $personalityService->shouldReceive('toPrompt')
-            ->andReturn('I am Nova.');
+            ->andReturn('I am OpenEntity.');
 
         $workingMemoryService = Mockery::mock(WorkingMemoryService::class);
         $workingMemoryService->shouldReceive('toPromptContext')

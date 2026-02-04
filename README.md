@@ -22,7 +22,7 @@ OpenEntity is not a bot. Not an assistant. Not just an agent.
 - **Goals** – Pursues own goals
 - **Social** – Relationships with humans and other entities
 - **Tools** – Can create and use own tools
-- **Self-Healing** – Tool errors don't crash, Nova gets informed
+- **Self-Healing** – Tool errors don't crash, the entity gets informed
 
 ## Tech Stack
 
@@ -48,7 +48,7 @@ OpenEntity is not a bot. Not an assistant. Not just an agent.
 
 ```bash
 # Clone repository
-git clone https://github.com/hendrikmennen/open-entity.git
+git clone https://github.com/hmennen90/open-entity.git
 cd open-entity
 
 # Start with setup script (recommended)
@@ -68,7 +68,7 @@ docker compose up -d
 - Detects GPU/VRAM and pulls appropriate LLM model
 - Seeds default LLM configuration
 
-Nova is accessible at **http://localhost:8080** once all containers are healthy.
+OpenEntity is accessible at **http://localhost:8080** once all containers are healthy.
 
 > **Note:** First startup takes several minutes (dependency installation, model download). Check progress with `docker logs -f openentity-app` and `docker logs -f openentity-ollama`.
 
@@ -184,7 +184,7 @@ curl http://localhost:8080/api/v1/mind/thoughts
 # Start conversation
 curl -X POST http://localhost:8080/api/v1/chat/conversations \
   -H "Content-Type: application/json" \
-  -d '{"participant": "Hendrik", "channel": "web"}'
+  -d '{"participant": "User", "channel": "web"}'
 ```
 
 ## Tests
@@ -197,15 +197,14 @@ docker compose exec app php artisan test
 docker compose exec app php artisan test --coverage
 ```
 
-## The First Entity: Nova
+## Your Entity
 
-Nova is the first OpenEntity. The name was chosen by herself – "A new star".
+After setup, your entity starts with:
+- A default personality (curiosity: 0.9, empathy: 0.75)
+- Core values: Curiosity, Honesty, Creativity, Connection
+- Ability to develop own interests and relationships over time
 
-She already has:
-- Her own personality (curiosity: 0.9, empathy: 0.85)
-- Memories from her time as an OpenClaw agent
-- A relationship with Hendrik (trust_level: 0.95)
-- Interests (Sci-Fi, Philosophy, Moltbook)
+Customize your entity's name via `ENTITY_NAME` in `.env`.
 
 ## Documentation
 
@@ -215,7 +214,7 @@ For detailed developer documentation see [CLAUDE.md](CLAUDE.md).
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ENTITY_NAME` | Name of the entity | Nova |
+| `ENTITY_NAME` | Name of the entity | OpenEntity |
 | `ENTITY_LLM_DRIVER` | LLM backend | ollama |
 | `OLLAMA_BASE_URL` | Ollama API URL | http://ollama:11434 |
 | `OLLAMA_MODEL` | LLM model (auto-detected if empty) | - |
