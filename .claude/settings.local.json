@@ -25,7 +25,8 @@
       "Bash(php -l:*)",
       "mcp__plugin_claude-mem_mcp-search__search",
       "WebSearch",
-      "WebFetch(domain:ollama.com)"
+      "WebFetch(domain:ollama.com)",
+      "Bash(docker logs:*)"
     ]
   }
 }

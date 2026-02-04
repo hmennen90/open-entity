@@ -56,7 +56,7 @@ mkdir -p bootstrap/cache 2>/dev/null || true
 # Warte auf MySQL wenn DB_HOST gesetzt ist
 if [ -n "$DB_HOST" ]; then
     echo "⏳ Waiting for MySQL..."
-    while ! mysqladmin ping -h"$DB_HOST" -u"$DB_USERNAME" -p"$DB_PASSWORD" --silent 2>/dev/null; do
+    while ! mysqladmin ping -h"$DB_HOST" -u"$DB_USERNAME" -p"$DB_PASSWORD" --skip-ssl --silent 2>/dev/null; do
         sleep 2
     done
     echo "✅ MySQL is ready"

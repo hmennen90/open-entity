@@ -44,57 +44,6 @@ class LlmConfigurationSeeder extends Seeder
 
         $this->command->info("  ✓ Ollama (Lokal) - Default: {$ollamaModel}");
 
-        // OpenRouter Konfiguration (vorbereitet, aber inaktiv)
-        LlmConfiguration::create([
-            'name' => 'OpenRouter',
-            'driver' => 'openrouter',
-            'model' => env('OPENROUTER_MODEL', 'anthropic/claude-sonnet-4'),
-            'api_key' => env('OPENROUTER_API_KEY'),
-            'is_active' => !empty(env('OPENROUTER_API_KEY')),
-            'is_default' => false,
-            'priority' => 80,
-            'options' => [
-                'temperature' => 0.8,
-                'max_tokens' => 4096,
-            ],
-        ]);
-
-        $this->command->info('  ✓ OpenRouter - ' . (!empty(env('OPENROUTER_API_KEY')) ? 'Aktiv' : 'Inaktiv (API Key fehlt)'));
-
-        // OpenAI Konfiguration (vorbereitet, aber inaktiv)
-        LlmConfiguration::create([
-            'name' => 'OpenAI',
-            'driver' => 'openai',
-            'model' => env('OPENAI_MODEL', 'gpt-4o'),
-            'api_key' => env('OPENAI_API_KEY'),
-            'is_active' => !empty(env('OPENAI_API_KEY')),
-            'is_default' => false,
-            'priority' => 70,
-            'options' => [
-                'temperature' => 0.8,
-                'max_tokens' => 4096,
-            ],
-        ]);
-
-        $this->command->info('  ✓ OpenAI - ' . (!empty(env('OPENAI_API_KEY')) ? 'Aktiv' : 'Inaktiv (API Key fehlt)'));
-
-        // NVIDIA API Konfiguration (vorbereitet, aber inaktiv)
-        LlmConfiguration::create([
-            'name' => 'NVIDIA API',
-            'driver' => 'nvidia',
-            'model' => env('NVIDIA_MODEL', 'meta/llama-3.1-70b-instruct'),
-            'api_key' => env('NVIDIA_API_KEY'),
-            'is_active' => !empty(env('NVIDIA_API_KEY')),
-            'is_default' => false,
-            'priority' => 60,
-            'options' => [
-                'temperature' => 0.8,
-                'max_tokens' => 4096,
-            ],
-        ]);
-
-        $this->command->info('  ✓ NVIDIA API - ' . (!empty(env('NVIDIA_API_KEY')) ? 'Aktiv' : 'Inaktiv (API Key fehlt)'));
-
         $this->command->info('LLM configurations seeded successfully!');
     }
 
