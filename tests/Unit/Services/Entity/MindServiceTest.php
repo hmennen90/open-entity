@@ -7,12 +7,12 @@ use App\Services\Entity\PersonalityService;
 use App\Services\Entity\MemoryService;
 use App\Models\Thought;
 use App\Models\Goal;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Tests\TestCase;
 
 class MindServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     private MindService $mindService;
 

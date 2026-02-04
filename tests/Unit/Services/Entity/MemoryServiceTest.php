@@ -4,12 +4,12 @@ namespace Tests\Unit\Services\Entity;
 
 use App\Services\Entity\MemoryService;
 use App\Models\Memory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Tests\TestCase;
 
 class MemoryServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     private MemoryService $memoryService;
 

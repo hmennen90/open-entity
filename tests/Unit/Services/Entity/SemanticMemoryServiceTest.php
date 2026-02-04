@@ -6,13 +6,13 @@ use App\Models\Memory;
 use App\Services\Embedding\EmbeddingService;
 use App\Services\Entity\MemoryService;
 use App\Services\Entity\SemanticMemoryService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Mockery;
 use Tests\TestCase;
 
 class SemanticMemoryServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     protected function tearDown(): void
     {
@@ -69,8 +69,11 @@ class SemanticMemoryServiceTest extends TestCase
             'embedded_at' => null,
         ]);
 
+        // The search method always generates query embedding first
         $embeddingService = Mockery::mock(EmbeddingService::class);
-        $embeddingService->shouldReceive('embed')->never();
+        $embeddingService->shouldReceive('embed')
+            ->once()
+            ->andReturn([0.1, 0.2, 0.3]);
 
         $memoryService = new MemoryService();
         $service = new SemanticMemoryService($embeddingService, $memoryService);
@@ -100,7 +103,6 @@ class SemanticMemoryServiceTest extends TestCase
             ->once()
             ->andReturn(pack('f*', ...$expectedEmbedding));
         $embeddingService->shouldReceive('getModelName')
-            ->once()
             ->andReturn('nomic-embed-text');
 
         $memoryService = new MemoryService();
@@ -131,10 +133,8 @@ class SemanticMemoryServiceTest extends TestCase
 
         $embeddingService = Mockery::mock(EmbeddingService::class);
         $embeddingService->shouldReceive('getModelName')
-            ->once()
             ->andReturn('nomic-embed-text');
         $embeddingService->shouldReceive('getDimensions')
-            ->once()
             ->andReturn(768);
 
         $memoryService = new MemoryService();

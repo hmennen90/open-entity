@@ -5,7 +5,7 @@ namespace Tests\Unit\Services\Embedding;
 use App\Services\Embedding\EmbeddingService;
 use App\Services\Embedding\Contracts\EmbeddingDriverInterface;
 use Illuminate\Support\Collection;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 use Mockery;
 
 class EmbeddingServiceTest extends TestCase

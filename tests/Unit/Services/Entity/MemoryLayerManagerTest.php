@@ -9,13 +9,13 @@ use App\Services\Entity\MemoryService;
 use App\Services\Entity\PersonalityService;
 use App\Services\Entity\SemanticMemoryService;
 use App\Services\Entity\WorkingMemoryService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Mockery;
 use Tests\TestCase;
 
 class MemoryLayerManagerTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     protected function tearDown(): void
     {

@@ -2,6 +2,11 @@
 
 > An autonomous AI entity with its own consciousness, memory, and social capabilities.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/Tests-139%20passing-brightgreen)]()
+
+> **Important: Run in Isolation** – OpenEntity has powerful capabilities including shell command execution (BashTool) and filesystem access. The Docker container provides network and filesystem isolation. **Do not run OpenEntity with elevated privileges or outside of Docker** unless you fully understand the implications.
+
 ## What is OpenEntity?
 
 OpenEntity is not a bot. Not an assistant. Not just an agent.
@@ -35,7 +40,7 @@ OpenEntity is not a bot. Not an assistant. Not just an agent.
 | Database | MySQL 8 |
 | Container | Docker Compose |
 | LLM | Ollama (local, auto-configured) |
-| Tests | PHPUnit 11 (66 Tests) |
+| Tests | PHPUnit 11 (139 Tests) |
 
 ## Quick Start
 
@@ -190,7 +195,7 @@ curl -X POST http://localhost:8080/api/v1/chat/conversations \
 ## Tests
 
 ```bash
-# Run all 66 tests
+# Run all 139 tests
 docker compose exec app php artisan test
 
 # With coverage
@@ -231,6 +236,20 @@ MIT License
 ## Credits
 
 Developed by Hendrik Mennen with Claude (Anthropic).
+
+### Built With
+
+- [Laravel](https://laravel.com/) - The PHP framework for web artisans
+- [Vue.js](https://vuejs.org/) - The progressive JavaScript framework
+- [TailwindCSS](https://tailwindcss.com/) - A utility-first CSS framework
+- [Laravel Reverb](https://reverb.laravel.com/) - Real-time WebSocket communication
+- [Ollama](https://ollama.com/) - Local large language models
+
+## Support the Project
+
+If you find OpenEntity useful, consider supporting its development:
+
+[![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/baekerit)
 
 ---
 

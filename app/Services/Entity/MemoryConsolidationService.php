@@ -50,8 +50,8 @@ class MemoryConsolidationService
     {
         // Check if summary already exists for this period
         $existing = MemorySummary::where('period_type', $periodType)
-            ->where('period_start', $start->toDateString())
-            ->where('period_end', $end->toDateString())
+            ->whereDate('period_start', $start)
+            ->whereDate('period_end', $end)
             ->first();
 
         if ($existing) {
@@ -65,7 +65,7 @@ class MemoryConsolidationService
 
         // Get unconsolidated memories from the period
         $memories = Memory::where('is_consolidated', false)
-            ->whereBetween('created_at', [$start->startOfDay(), $end->endOfDay()])
+            ->whereBetween('created_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
             ->orderByDesc('importance')
             ->get();
 

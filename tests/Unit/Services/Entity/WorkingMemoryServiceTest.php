@@ -4,13 +4,13 @@ namespace Tests\Unit\Services\Entity;
 
 use App\Models\Thought;
 use App\Services\Entity\WorkingMemoryService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class WorkingMemoryServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     protected function setUp(): void
     {

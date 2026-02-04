@@ -8,13 +8,13 @@ use App\Services\Embedding\EmbeddingService;
 use App\Services\Entity\MemoryConsolidationService;
 use App\Services\LLM\LLMService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Mockery;
 use Tests\TestCase;
 
 class MemoryConsolidationServiceTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     protected function tearDown(): void
     {
@@ -36,7 +36,6 @@ class MemoryConsolidationServiceTest extends TestCase
 
         $llmService = Mockery::mock(LLMService::class);
         $llmService->shouldReceive('generate')
-            ->times(3) // themes, summary, insights
             ->andReturn('["learning", "coding"]', 'Summary of the day', 'Key insight');
 
         $embeddingService = Mockery::mock(EmbeddingService::class);
@@ -66,10 +65,10 @@ class MemoryConsolidationServiceTest extends TestCase
     {
         $yesterday = Carbon::yesterday();
 
-        // Create existing summary
+        // Create existing summary - use Carbon dates since model casts to date
         MemorySummary::create([
-            'period_start' => $yesterday->toDateString(),
-            'period_end' => $yesterday->toDateString(),
+            'period_start' => $yesterday->copy(),
+            'period_end' => $yesterday->copy(),
             'period_type' => 'daily',
             'summary' => 'Existing summary',
             'source_memory_count' => 5,

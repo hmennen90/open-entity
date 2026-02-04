@@ -4,13 +4,13 @@ namespace Tests\Feature\Api;
 
 use App\Models\Conversation;
 use App\Models\Message;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
 
 class ChatApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseMigrations;
 
     protected function setUp(): void
     {

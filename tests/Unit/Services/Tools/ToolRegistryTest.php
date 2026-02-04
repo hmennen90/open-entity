@@ -23,6 +23,9 @@ class ToolRegistryTest extends TestCase
             'entity.tools.filesystem.enabled' => false,
             'entity.tools.web.enabled' => false,
             'entity.tools.documentation.enabled' => false,
+            'entity.tools.artisan.enabled' => false,
+            'entity.tools.bash.enabled' => false,
+            'entity.tools.personality.enabled' => false,
         ]);
 
         $sandbox = new ToolSandbox(new ToolValidator());
@@ -246,7 +249,7 @@ PHP;
 
         $context = $this->registry->toPromptContext();
 
-        $this->assertStringContainsString('Fehlgeschlagene Tools', $context);
+        $this->assertStringContainsString('Failed Tools', $context);
         $this->assertStringContainsString('failed_context_tool', $context);
     }
 

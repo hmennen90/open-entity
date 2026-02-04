@@ -107,6 +107,7 @@ Detailed documentation for developers is available in the `docs/` folder:
 | [Personality](docs/PERSONALITY.md) | Identity and traits |
 | [Tools](docs/TOOLS.md) | Tool system and custom tools |
 | [API Reference](docs/API.md) | REST API endpoints |
+| [License Compliance](docs/LICENSE-COMPLIANCE.md) | Dependency licenses and compatibility |
 
 ## Tech Stack
 
