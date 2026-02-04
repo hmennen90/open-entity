@@ -8,6 +8,7 @@ use App\Services\Tools\BuiltIn\WebTool;
 use App\Services\Tools\BuiltIn\DocumentationTool;
 use App\Services\Tools\BuiltIn\ArtisanTool;
 use App\Services\Tools\BuiltIn\BashTool;
+use App\Services\Tools\BuiltIn\PersonalityTool;
 use App\Events\ToolCreated;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
@@ -293,6 +294,11 @@ class ToolRegistry
                 config('entity.tools.bash.timeout', 60),
                 base_path()
             ));
+        }
+
+        // Personality Tool - allows the entity to evolve its own personality
+        if (config('entity.tools.personality.enabled', true)) {
+            $this->register(new PersonalityTool());
         }
     }
 

@@ -20,7 +20,12 @@
       "Bash(python3:*)",
       "Bash(grep:*)",
       "Bash(done)",
-      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -20 {}')"
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -20 {}')",
+      "Bash(php:*)",
+      "Bash(php -l:*)",
+      "mcp__plugin_claude-mem_mcp-search__search",
+      "WebSearch",
+      "WebFetch(domain:ollama.com)"
     ]
   }
 }

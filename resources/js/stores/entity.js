@@ -4,7 +4,7 @@ import axios from 'axios';
 
 export const useEntityStore = defineStore('entity', () => {
     // State
-    const name = ref('OpenEntity');
+    const name = ref('Entity');
     const status = ref('sleeping');
     const uptime = ref(null);
     const lastThoughtAt = ref(null);
@@ -38,7 +38,7 @@ export const useEntityStore = defineStore('entity', () => {
         isLoading.value = true;
         try {
             const response = await axios.get('/api/v1/entity/status');
-            name.value = response.data.name || 'OpenEntity';
+            name.value = response.data.name || 'Entity';
             status.value = response.data.status;
             uptime.value = response.data.uptime;
             lastThoughtAt.value = response.data.last_thought_at;

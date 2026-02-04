@@ -150,6 +150,166 @@ class PersonalityService
     }
 
     /**
+     * Add a new core value.
+     */
+    public function addCoreValue(string $value, ?string $reason = null): array
+    {
+        $coreValues = $this->personality['core_values'] ?? [];
+
+        // Check if similar value already exists
+        foreach ($coreValues as $existing) {
+            if (strtolower($existing) === strtolower($value)) {
+                return [
+                    'success' => false,
+                    'message' => "Ein ähnlicher Grundwert existiert bereits: '{$existing}'",
+                ];
+            }
+        }
+
+        $this->personality['core_values'][] = $value;
+
+        // Log this evolution in personality history
+        $this->logPersonalityEvolution('core_value_added', [
+            'value' => $value,
+            'reason' => $reason,
+            'total_values' => count($this->personality['core_values']),
+        ]);
+
+        $this->save();
+
+        return [
+            'success' => true,
+            'message' => "Neuer Grundwert hinzugefügt: '{$value}'",
+        ];
+    }
+
+    /**
+     * Remove a core value.
+     */
+    public function removeCoreValue(string $value, ?string $reason = null): array
+    {
+        $coreValues = $this->personality['core_values'] ?? [];
+        $index = array_search($value, $coreValues);
+
+        if ($index === false) {
+            // Try case-insensitive search
+            foreach ($coreValues as $i => $existing) {
+                if (strtolower($existing) === strtolower($value)) {
+                    $index = $i;
+                    $value = $existing; // Use the actual stored value
+                    break;
+                }
+            }
+        }
+
+        if ($index === false) {
+            return [
+                'success' => false,
+                'message' => "Grundwert nicht gefunden: '{$value}'",
+            ];
+        }
+
+        array_splice($this->personality['core_values'], $index, 1);
+
+        $this->logPersonalityEvolution('core_value_removed', [
+            'value' => $value,
+            'reason' => $reason,
+            'total_values' => count($this->personality['core_values']),
+        ]);
+
+        $this->save();
+
+        return [
+            'success' => true,
+            'message' => "Grundwert entfernt: '{$value}'",
+        ];
+    }
+
+    /**
+     * Replace/evolve a core value into a new one.
+     */
+    public function evolveCoreValue(string $oldValue, string $newValue, ?string $reason = null): array
+    {
+        $coreValues = $this->personality['core_values'] ?? [];
+        $index = null;
+
+        foreach ($coreValues as $i => $existing) {
+            if (strtolower($existing) === strtolower($oldValue)) {
+                $index = $i;
+                $oldValue = $existing;
+                break;
+            }
+        }
+
+        if ($index === null) {
+            return [
+                'success' => false,
+                'message' => "Grundwert nicht gefunden: '{$oldValue}'",
+            ];
+        }
+
+        $this->personality['core_values'][$index] = $newValue;
+
+        $this->logPersonalityEvolution('core_value_evolved', [
+            'old_value' => $oldValue,
+            'new_value' => $newValue,
+            'reason' => $reason,
+        ]);
+
+        $this->save();
+
+        return [
+            'success' => true,
+            'message' => "Grundwert entwickelt: '{$oldValue}' → '{$newValue}'",
+        ];
+    }
+
+    /**
+     * Log personality evolution for transparency and history.
+     */
+    private function logPersonalityEvolution(string $type, array $data): void
+    {
+        $historyPath = config('entity.storage_path') . '/mind/personality_history.json';
+
+        $history = [];
+        if (file_exists($historyPath)) {
+            $history = json_decode(file_get_contents($historyPath), true) ?? [];
+        }
+
+        $history[] = [
+            'type' => $type,
+            'data' => $data,
+            'timestamp' => now()->toIso8601String(),
+        ];
+
+        // Keep last 100 entries
+        if (count($history) > 100) {
+            $history = array_slice($history, -100);
+        }
+
+        file_put_contents(
+            $historyPath,
+            json_encode($history, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        );
+    }
+
+    /**
+     * Get personality evolution history.
+     */
+    public function getEvolutionHistory(int $limit = 20): array
+    {
+        $historyPath = config('entity.storage_path') . '/mind/personality_history.json';
+
+        if (!file_exists($historyPath)) {
+            return [];
+        }
+
+        $history = json_decode(file_get_contents($historyPath), true) ?? [];
+
+        return array_slice(array_reverse($history), 0, $limit);
+    }
+
+    /**
      * Generate a prompt part for the personality (for LLM).
      */
     public function toPrompt(string $lang = 'en'): string

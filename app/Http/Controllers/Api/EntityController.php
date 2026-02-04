@@ -20,7 +20,7 @@ class EntityController extends Controller
         $energyState = $this->entityService->getEnergyState();
 
         return response()->json([
-            'name' => config('entity.name'),
+            'name' => $this->entityService->getName(),
             'status' => $this->entityService->getStatus(),
             'uptime' => $this->entityService->getUptime(),
             'last_thought_at' => $this->entityService->getLastThoughtAt(),
@@ -45,7 +45,7 @@ class EntityController extends Controller
     public function state(): JsonResponse
     {
         return response()->json([
-            'name' => config('entity.name'),
+            'name' => $this->entityService->getName(),
             'status' => $this->entityService->getStatus(),
             'personality' => $this->entityService->getPersonality(),
             'current_mood' => $this->entityService->getCurrentMood(),

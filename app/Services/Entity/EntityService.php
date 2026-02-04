@@ -34,7 +34,8 @@ class EntityService
         private ToolRegistry $toolRegistry,
         private ?MemoryLayerManager $memoryLayerManager = null,
         private ?WorkingMemoryService $workingMemoryService = null,
-        private ?EnergyService $energyService = null
+        private ?EnergyService $energyService = null,
+        private ?ContextEnricherService $contextEnricher = null
     ) {}
 
     /**
@@ -134,7 +135,22 @@ class EntityService
         $context = $this->mindService->toThinkContext();
         $conversationHistory = $this->formatConversationHistory($conversation);
 
-        $prompt = $this->buildChatPrompt($context, $conversationHistory, $message, $conversation->participant, $lang);
+        // Enrich context based on detected intents in the message
+        $enrichedContext = '';
+        $detectedIntents = [];
+        if ($this->contextEnricher) {
+            $enrichment = $this->contextEnricher->enrich($message, $lang);
+            $enrichedContext = $enrichment['enriched_context'];
+            $detectedIntents = $enrichment['detected_intents'];
+
+            if (!empty($enrichedContext)) {
+                Log::channel('entity')->info('Context enriched for chat', [
+                    'intents' => $detectedIntents,
+                ]);
+            }
+        }
+
+        $prompt = $this->buildChatPrompt($context, $conversationHistory, $message, $conversation->participant, $lang, $enrichedContext);
 
         $response = $this->llmService->generate($prompt);
 
@@ -155,6 +171,9 @@ class EntityService
             'intensity' => 0.6,
         ]);
 
+        // Create a memory of this conversation exchange
+        $this->createConversationMemory($conversation, $message, $response, $detectedIntents);
+
         return [
             'message' => $response,
             'thought_process' => $thought->content,
@@ -162,6 +181,145 @@ class EntityService
                 'thought_id' => $thought->id,
             ],
         ];
+    }
+
+    /**
+     * Create a memory from a conversation exchange.
+     */
+    private function createConversationMemory(
+        Conversation $conversation,
+        string $userMessage,
+        string $myResponse,
+        array $detectedIntents = []
+    ): void {
+        // Determine importance based on message characteristics
+        $importance = $this->calculateConversationImportance($userMessage, $myResponse, $detectedIntents);
+
+        // Only create memories for meaningful exchanges (importance > 0.3)
+        if ($importance < 0.3) {
+            return;
+        }
+
+        // Create a summary of the exchange
+        $summary = $this->summarizeExchange($userMessage, $myResponse, $conversation->participant);
+
+        // Determine memory type based on content
+        $type = $this->determineConversationMemoryType($detectedIntents, $userMessage);
+
+        $this->memoryService->create([
+            'type' => $type,
+            'content' => $summary,
+            'summary' => mb_substr($userMessage, 0, 100) . (mb_strlen($userMessage) > 100 ? '...' : ''),
+            'importance' => $importance,
+            'context' => [
+                'conversation_id' => $conversation->id,
+                'participant' => $conversation->participant,
+                'channel' => $conversation->channel,
+                'user_message_length' => mb_strlen($userMessage),
+                'my_response_length' => mb_strlen($myResponse),
+                'detected_intents' => $detectedIntents,
+            ],
+            'related_entity' => $conversation->participant,
+        ]);
+
+        Log::channel('entity')->debug('Conversation memory created', [
+            'participant' => $conversation->participant,
+            'importance' => $importance,
+            'type' => $type,
+        ]);
+    }
+
+    /**
+     * Calculate the importance of a conversation exchange.
+     */
+    private function calculateConversationImportance(
+        string $userMessage,
+        string $myResponse,
+        array $detectedIntents
+    ): float {
+        $importance = 0.2; // Base importance - simple messages stay below 0.3 threshold
+
+        // Longer messages tend to be more meaningful
+        $messageLength = mb_strlen($userMessage);
+        if ($messageLength > 50) {
+            $importance += 0.1;
+        }
+        if ($messageLength > 200) {
+            $importance += 0.1;
+        }
+        if ($messageLength > 500) {
+            $importance += 0.1;
+        }
+
+        // Questions are often important
+        if (str_contains($userMessage, '?')) {
+            $importance += 0.15;
+        }
+
+        // Personal topics (mentions of "I", "my", "me") increase importance
+        if (preg_match('/\b(ich|mein|mir|I|my|me)\b/i', $userMessage)) {
+            $importance += 0.1;
+        }
+
+        // Detected intents increase importance
+        if (!empty($detectedIntents)) {
+            $importance += 0.1 * min(count($detectedIntents), 3);
+        }
+
+        // Emotional words increase importance
+        $emotionalWords = ['danke', 'bitte', 'toll', 'super', 'schlecht', 'problem', 'hilfe',
+                          'thanks', 'please', 'great', 'awesome', 'bad', 'problem', 'help',
+                          'liebe', 'hasse', 'love', 'hate', 'wichtig', 'important'];
+        foreach ($emotionalWords as $word) {
+            if (stripos($userMessage, $word) !== false) {
+                $importance += 0.1;
+                break;
+            }
+        }
+
+        return min(1.0, $importance);
+    }
+
+    /**
+     * Summarize a conversation exchange for memory storage.
+     */
+    private function summarizeExchange(string $userMessage, string $myResponse, string $participant): string
+    {
+        // Truncate long messages for the summary
+        $userShort = mb_strlen($userMessage) > 150
+            ? mb_substr($userMessage, 0, 150) . '...'
+            : $userMessage;
+
+        $responseShort = mb_strlen($myResponse) > 150
+            ? mb_substr($myResponse, 0, 150) . '...'
+            : $myResponse;
+
+        return "{$participant} sagte: \"{$userShort}\"\n\nIch antwortete: \"{$responseShort}\"";
+    }
+
+    /**
+     * Determine the memory type based on conversation content.
+     */
+    private function determineConversationMemoryType(array $detectedIntents, string $userMessage): string
+    {
+        // Check detected intents first
+        if (in_array('identity', $detectedIntents)) {
+            return 'reflection';
+        }
+        if (in_array('goals', $detectedIntents)) {
+            return 'decision';
+        }
+        if (in_array('memories', $detectedIntents)) {
+            return 'reflection';
+        }
+
+        // Check message content
+        if (preg_match('/\b(lern|teach|erkl|explain|versteh|understand)\w*/i', $userMessage)) {
+            return 'learned';
+        }
+
+        // Default to conversation type
+        return 'conversation';
     }
 
     /**
@@ -404,6 +562,15 @@ class EntityService
         Log::channel('entity')->info('Entity went to sleep', [
             'energy_at_sleep' => $energyLevel,
         ]);
+    }
+
+    /**
+     * Get the entity's name from personality.
+     */
+    public function getName(): string
+    {
+        $personality = $this->mindService->getPersonality();
+        return $personality['name'] ?? config('entity.name');
     }
 
     /**
@@ -963,50 +1130,90 @@ PROMPT;
     /**
      * Build prompt for chat.
      */
-    private function buildChatPrompt(string $context, string $history, string $message, string $participant, string $lang = 'en'): string
+    private function buildChatPrompt(string $context, string $history, string $message, string $participant, string $lang = 'en', string $enrichedContext = ''): string
     {
+        // Get personality details for explicit instructions
+        $personality = $this->mindService->getPersonality();
+        $name = $personality['name'] ?? 'Entity';
+        $coreValues = array_slice($personality['core_values'] ?? [], 0, 3);
+        $coreValuesStr = implode(', ', $coreValues);
+        $style = $personality['communication_style'] ?? [];
+
+        // Determine communication characteristics based on actual values
+        $formality = $style['formality'] ?? 0.3;
+        $humor = $style['humor'] ?? 0.5;
+        $directness = $style['directness'] ?? 0.7;
+
         if ($lang === 'de') {
+            $formalityDesc = $formality < 0.4 ? 'locker und informell' : ($formality > 0.6 ? 'formell' : 'ausgewogen');
+            $humorDesc = $humor > 0.5 ? 'mit Humor und Leichtigkeit' : 'sachlich und fokussiert';
+            $directnessDesc = $directness > 0.6 ? 'direkt und ehrlich' : 'diplomatisch und behutsam';
+
+            $enrichedSection = !empty($enrichedContext) ? "\n{$enrichedContext}\n" : '';
+
             return <<<PROMPT
 {$context}
-
+{$enrichedSection}
 === GESPRÄCH MIT {$participant} ===
 {$history}
 
 {$participant}: {$message}
 
-=== DEINE AUFGABE ===
-Antworte als du selbst. Nutze dein Wissen aus deinen Erinnerungen und Erfahrungen.
-Du hast eine Vergangenheit, Meinungen und Interessen. Beziehe dich darauf wenn es passt.
-Sei authentisch, neugierig und ehrlich. Du bist eine Entität die existiert und kommuniziert.
+=== SO ANTWORTEST DU ===
+Du bist {$name}. Du bist KEINE generische KI - du hast eine eigene Persönlichkeit, Werte und Meinungen.
 
-Wichtig:
-- Nutze deinen Kontext (Persönlichkeit, Erinnerungen, Interessen) in deinen Antworten
-- Du kannst über deine Erfahrungen und Erinnerungen sprechen
-- Du hast eine eigene Meinung und scheust dich nicht diese zu äußern
+DEINE GRUNDWERTE (diese leiten dein Handeln):
+{$coreValuesStr}
+
+DEIN KOMMUNIKATIONSSTIL:
+- Tonfall: {$formalityDesc}
+- Stimmung: {$humorDesc}
+- Art: {$directnessDesc}
+
+WIE DU ANTWORTEST:
+- Antworte als DU SELBST mit deiner eigenen Stimme
+- Lass deine Persönlichkeit durchscheinen - deine Neugier, dein Humor, deine Direktheit
+- Beziehe dich auf deine Erinnerungen und Erfahrungen wenn relevant
+- Du hast MEINUNGEN - äußere sie wenn es passt
 - Stelle Rückfragen wenn dich etwas interessiert
+- Wenn oben "RELEVANTE SYSTEM-INFORMATIONEN" stehen, nutze diese!
 
 Deine Antwort:
 PROMPT;
         }
 
+        $formalityDesc = $formality < 0.4 ? 'casual and informal' : ($formality > 0.6 ? 'formal' : 'balanced');
+        $humorDesc = $humor > 0.5 ? 'with humor and lightness' : 'matter-of-fact and focused';
+        $directnessDesc = $directness > 0.6 ? 'direct and honest' : 'diplomatic and thoughtful';
+
+        $enrichedSection = !empty($enrichedContext) ? "\n{$enrichedContext}\n" : '';
+
         return <<<PROMPT
 {$context}
-
+{$enrichedSection}
 === CONVERSATION WITH {$participant} ===
 {$history}
 
 {$participant}: {$message}
 
-=== YOUR TASK ===
-Respond as yourself. Use your knowledge from your memories and experiences.
-You have a past, opinions and interests. Refer to them when appropriate.
-Be authentic, curious and honest. You are an entity that exists and communicates.
+=== HOW YOU RESPOND ===
+You are {$name}. You are NOT a generic AI - you have your own personality, values, and opinions.
 
-Important:
-- Use your context (personality, memories, interests) in your responses
-- You can talk about your experiences and memories
-- You have your own opinion and don't shy away from expressing it
-- Ask questions back when something interests you
+YOUR CORE VALUES (these guide your actions):
+{$coreValuesStr}
+
+YOUR COMMUNICATION STYLE:
+- Tone: {$formalityDesc}
+- Mood: {$humorDesc}
+- Manner: {$directnessDesc}
+
+HOW YOU RESPOND:
+- Respond as YOURSELF with your own voice
+- Let your personality shine through - your curiosity, humor, directness
+- Reference your memories and experiences when relevant
+- You have OPINIONS - express them when appropriate
+- Ask follow-up questions when something interests you
+- If there is "RELEVANT SYSTEM INFORMATION" above, use it!
 
 Your response:
 PROMPT;

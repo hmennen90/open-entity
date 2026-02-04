@@ -22,7 +22,7 @@ const navItems = computed(() => [
 const isActive = (path) => route.path === path;
 
 // Computed to ensure name has a fallback
-const entityName = computed(() => entityStore.name || 'OpenEntity');
+const entityName = computed(() => entityStore.name || 'Entity');
 </script>
 
 <template>

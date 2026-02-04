@@ -11,7 +11,7 @@ const settingsStore = useSettingsStore();
 const t = (key, params = {}) => settingsStore.t(key, params);
 
 // Computed to ensure name has a fallback
-const entityName = computed(() => entityStore.name || 'OpenEntity');
+const entityName = computed(() => entityStore.name || 'Entity');
 
 const messageInput = ref('');
 const messagesContainer = ref(null);

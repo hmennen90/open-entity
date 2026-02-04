@@ -1,4 +1,6 @@
-# OpenEntity - CLAUDE.md
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Vision
 
@@ -215,33 +217,57 @@ GET    /api/v1/memory             # Memories
 GET    /api/v1/goals              # Goals
 ```
 
-## Artisan Commands
+## Development Commands
 
 ```bash
-# Control Entity
-php artisan entity:wake           # Wake up
-php artisan entity:sleep          # Put to sleep
-php artisan entity:status         # Show status
+# Setup (auto-detects hardware, selects optimal LLM model)
+./setup.sh --start              # Start Docker + pull Ollama models
+./setup.sh --setup-macos        # Apple Silicon: native Ollama + models
+./setup.sh --pull-models        # Only pull Ollama models
 
-# Think Loop
-php artisan entity:think          # Single think cycle
-php artisan entity:think --continuous --interval=30  # Continuous
+# Docker development
+docker compose up -d            # Start all services
+docker compose exec app bash    # Shell into app container
+
+# Inside container (or with docker compose exec app prefix)
+composer install                # Install PHP dependencies
+npm install                     # Install Node dependencies
+npm run dev                     # Vite dev server (hot reload)
+npm run build                   # Production build
+
+# Database
+php artisan migrate             # Run migrations
+php artisan migrate:fresh       # Reset database
+
+# Code formatting
+./vendor/bin/pint               # Laravel Pint (PSR-12)
+
+# Cache
+php artisan config:clear        # Clear config cache
+php artisan cache:clear         # Clear application cache
+```
+
+## Entity Commands
+
+```bash
+php artisan entity:wake                              # Wake up
+php artisan entity:sleep                             # Put to sleep
+php artisan entity:status                            # Show status
+php artisan entity:think                             # Single think cycle
+php artisan entity:think --continuous --interval=30  # Continuous loop
+php artisan entity:import-memories                   # Import memories from files
+php artisan entity:import-memories --fresh           # Reset and import
 ```
 
 ## Tests
 
 ```bash
-# All tests
-php artisan test
-
-# Unit tests only
-php artisan test --testsuite=Unit
-
-# Feature tests only
-php artisan test --testsuite=Feature
-
-# Specific tests
-php artisan test --filter=ToolValidatorTest
+php artisan test                          # All tests
+php artisan test --testsuite=Unit         # Unit tests only
+php artisan test --testsuite=Feature      # Feature tests only
+php artisan test --filter=ToolValidatorTest  # Single test class
+php artisan test --filter=test_method_name   # Single test method
+php artisan test --parallel               # Parallel execution
 ```
 
 ### Test Coverage
@@ -272,34 +298,36 @@ php artisan test --filter=ToolValidatorTest
 
 ## LLM Configuration
 
-```php
-// config/entity.php
-'llm' => [
-    'default' => env('ENTITY_LLM_DRIVER', 'ollama'),
+The `setup.sh` script auto-selects optimal models based on available VRAM/RAM:
 
-    'drivers' => [
-        'ollama' => [
-            'base_url' => env('OLLAMA_BASE_URL', 'http://ollama:11434'),
-            'model' => env('OLLAMA_MODEL', 'qwen2.5-coder:14b'),
-        ],
-        'openai' => [
-            'api_key' => env('OPENAI_API_KEY'),
-            'model' => env('OPENAI_MODEL', 'gpt-4o'),
-        ],
-        'openrouter' => [
-            'api_key' => env('OPENROUTER_API_KEY'),
-            'model' => env('OPENROUTER_MODEL', 'openrouter/auto'),
-        ],
-    ],
-],
-```
+| Memory | Model |
+|--------|-------|
+| < 6 GB | qwen2.5:7b-instruct-q4_K_M |
+| 6-10 GB | qwen2.5:7b-instruct-q5_K_M |
+| 10-14 GB | qwen2.5:14b-instruct-q4_K_M |
+| 14-22 GB | qwen2.5:14b-instruct-q5_K_M |
+| 22-26 GB | qwen2.5:32b-instruct-q4_K_M |
+| 26-50 GB | qwen2.5:32b-instruct-q5_K_M |
+| > 50 GB | qwen2.5:72b-instruct-q4/q5_K_M |
+
+Override via environment: `OLLAMA_MODEL`, `ENTITY_LLM_DRIVER` (ollama/openai/openrouter/nvidia)
+
+## Memory System
+
+4-layer human-like memory architecture (config in `config/entity.php`):
+
+1. **Core Identity** – Always loaded personality from `storage/entity/mind/personality.json`
+2. **Semantic Memory** – Learned knowledge, keyword-indexed search
+3. **Episodic Memory** – Experiences with vector embeddings for semantic search
+4. **Working Memory** – Current context, in-memory only
+
+Embedding driver configurable: `MEMORY_EMBEDDING_DRIVER` (ollama/openai/openrouter)
+Default embedding model: `nomic-embed-text`
 
 ## Next Steps
 
-- [ ] Complete frontend UI components
 - [ ] Moltbook Integration
 - [ ] Discord Integration
-- [ ] Improved Memory Retrieval (Embeddings)
 - [ ] Goal Tracking and Progress
 - [ ] Laravel Sanctum Authentication
 

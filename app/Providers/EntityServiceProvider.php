@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\LLM\NVidiaApiDriver;
 use Illuminate\Support\ServiceProvider;
+use App\Services\Entity\ContextEnricherService;
 use App\Services\Entity\EntityService;
 use App\Services\Entity\EnergyService;
 use App\Services\Entity\MindService;
@@ -67,6 +68,15 @@ class EntityServiceProvider extends ServiceProvider
         $this->app->singleton(PersonalityService::class);
         $this->app->singleton(MemoryService::class);
         $this->app->singleton(EnergyService::class);
+
+        // Context Enricher (intent detection + system info injection)
+        $this->app->singleton(ContextEnricherService::class, function ($app) {
+            return new ContextEnricherService(
+                $app->make(ToolRegistry::class),
+                $app->make(EnergyService::class),
+                $app->make(PersonalityService::class)
+            );
+        });
 
         // Embedding Driver
         $this->app->singleton(EmbeddingDriverInterface::class, function ($app) {
@@ -167,7 +177,8 @@ class EntityServiceProvider extends ServiceProvider
                 $app->make(ToolRegistry::class),
                 $app->make(MemoryLayerManager::class),
                 $app->make(WorkingMemoryService::class),
-                $app->make(EnergyService::class)
+                $app->make(EnergyService::class),
+                $app->make(ContextEnricherService::class)
             );
         });
     }

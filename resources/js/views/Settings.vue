@@ -7,6 +7,8 @@ import axios from 'axios';
 const entityStore = useEntityStore();
 const settingsStore = useSettingsStore();
 
+const t = (key, params = {}) => settingsStore.t(key, params);
+
 const personality = ref({});
 const isLoading = ref(true);
 
@@ -199,29 +201,29 @@ onMounted(() => {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    Settings
+                    {{ t('settings') }}
                 </h1>
                 <p class="text-gray-500 dark:text-gray-400">
-                    View and configure entity settings.
+                    {{ t('settingsDescription') }}
                 </p>
             </div>
 
             <!-- Loading -->
             <div v-if="isLoading" class="text-center py-12">
                 <div class="animate-spin w-8 h-8 border-4 border-entity-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p class="text-gray-500 dark:text-gray-400">Loading settings...</p>
+                <p class="text-gray-500 dark:text-gray-400">{{ t('loadingSettings') }}</p>
             </div>
 
             <div v-else class="space-y-6">
                 <!-- LLM Configurations Card -->
                 <div class="card">
                     <div class="card-header flex items-center justify-between">
-                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">LLM Configurations</h2>
+                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('llmConfigurations') }}</h2>
                         <button
                             @click="showAddModal = true"
                             class="px-4 py-2 bg-entity-600 text-white rounded-lg text-sm font-medium hover:bg-entity-700 transition-colors"
                         >
-                            + Add Configuration
+                            + {{ t('addConfiguration') }}
                         </button>
                     </div>
                     <div class="card-body">
@@ -229,7 +231,7 @@ onMounted(() => {
                             <div class="animate-spin w-6 h-6 border-4 border-entity-500 border-t-transparent rounded-full mx-auto"></div>
                         </div>
                         <div v-else-if="llmConfigurations.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
-                            No LLM configurations yet. Add one to get started.
+                            {{ t('noLlmConfigurationsYet') }} {{ t('createFirstConfiguration') }}
                         </div>
                         <div v-else class="space-y-4">
                             <div
@@ -245,7 +247,7 @@ onMounted(() => {
                                             <div class="flex items-center gap-2">
                                                 <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ config.name }}</h3>
                                                 <span v-if="config.is_default" class="px-2 py-0.5 text-xs font-medium bg-entity-100 text-entity-800 dark:bg-entity-900 dark:text-entity-300 rounded">
-                                                    Default
+                                                    {{ t('defaultConfiguration') }}
                                                 </span>
                                                 <span :class="getStatusColor(config.status)" class="px-2 py-0.5 text-xs font-medium rounded capitalize">
                                                     {{ config.status }}
@@ -267,7 +269,7 @@ onMounted(() => {
                                             @click="testConfiguration(config)"
                                             :disabled="isTesting === config.id"
                                             class="p-2 text-gray-500 hover:text-entity-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                                            title="Test"
+                                            :title="t('test')"
                                         >
                                             <span v-if="isTesting === config.id" class="animate-spin">⏳</span>
                                             <span v-else>🧪</span>
@@ -276,7 +278,7 @@ onMounted(() => {
                                             v-if="!config.is_default"
                                             @click="setAsDefault(config)"
                                             class="p-2 text-gray-500 hover:text-entity-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                                            title="Set as default"
+                                            :title="t('setAsDefault')"
                                         >
                                             ⭐
                                         </button>
@@ -284,21 +286,21 @@ onMounted(() => {
                                             v-if="config.status === 'error'"
                                             @click="resetCircuitBreaker(config)"
                                             class="p-2 text-gray-500 hover:text-green-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                                            title="Reset circuit breaker"
+                                            :title="t('resetCircuitBreaker')"
                                         >
                                             🔄
                                         </button>
                                         <button
                                             @click="openEditModal(config)"
                                             class="p-2 text-gray-500 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                                            title="Edit"
+                                            :title="t('edit')"
                                         >
                                             ✏️
                                         </button>
                                         <button
                                             @click="deleteConfiguration(config)"
                                             class="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                                            title="Delete"
+                                            :title="t('delete')"
                                         >
                                             🗑️
                                         </button>
@@ -321,14 +323,14 @@ onMounted(() => {
                 <!-- Appearance Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Appearance</h2>
+                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('themeSettings') }}</h2>
                     </div>
                     <div class="card-body">
                         <div class="flex items-center justify-between">
                             <div>
-                                <span class="text-gray-900 dark:text-gray-100 font-medium">Theme</span>
+                                <span class="text-gray-900 dark:text-gray-100 font-medium">{{ t('theme') }}</span>
                                 <p class="text-sm text-gray-500 dark:text-gray-400">
-                                    Choose between light, dark, or system theme
+                                    {{ t('themeDescription') }}
                                 </p>
                             </div>
                             <div class="flex gap-2">
@@ -339,7 +341,7 @@ onMounted(() => {
                                         ? 'bg-entity-600 text-white'
                                         : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'"
                                 >
-                                    Light
+                                    {{ t('light') }}
                                 </button>
                                 <button
                                     @click="settingsStore.setTheme('dark')"
@@ -348,7 +350,7 @@ onMounted(() => {
                                         ? 'bg-entity-600 text-white'
                                         : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'"
                                 >
-                                    Dark
+                                    {{ t('dark') }}
                                 </button>
                                 <button
                                     @click="settingsStore.setTheme('system')"
@@ -357,7 +359,7 @@ onMounted(() => {
                                         ? 'bg-entity-600 text-white'
                                         : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'"
                                 >
-                                    System
+                                    {{ t('system') }}
                                 </button>
                             </div>
                         </div>
@@ -367,21 +369,21 @@ onMounted(() => {
                 <!-- Entity Info Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Entity Information</h2>
+                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('entityInformation') }}</h2>
                     </div>
                     <div class="card-body space-y-4">
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-500 dark:text-gray-400">Name</span>
+                            <span class="text-gray-500 dark:text-gray-400">{{ t('name') }}</span>
                             <span class="font-medium text-gray-900 dark:text-gray-100">{{ personality.name || entityStore.name }}</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-500 dark:text-gray-400">Status</span>
-                            <span class="capitalize font-medium text-gray-900 dark:text-gray-100">{{ entityStore.status }}</span>
+                            <span class="text-gray-500 dark:text-gray-400">{{ t('status') }}</span>
+                            <span class="capitalize font-medium text-gray-900 dark:text-gray-100">{{ t(entityStore.status) }}</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-500 dark:text-gray-400">Active LLM</span>
+                            <span class="text-gray-500 dark:text-gray-400">{{ t('activeLlm') }}</span>
                             <span class="font-medium text-gray-900 dark:text-gray-100">
-                                {{ llmConfigurations.find(c => c.is_default)?.name || 'None configured' }}
+                                {{ llmConfigurations.find(c => c.is_default)?.name || t('noActiveLlm') }}
                             </span>
                         </div>
                     </div>
@@ -390,12 +392,12 @@ onMounted(() => {
                 <!-- Personality Traits Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Personality Traits</h2>
+                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('personalityTraits') }}</h2>
                     </div>
                     <div class="card-body space-y-4">
                         <div v-for="(value, trait) in personality.traits" :key="trait">
                             <div class="flex items-center justify-between mb-1">
-                                <span class="text-gray-500 dark:text-gray-400 capitalize">{{ trait }}</span>
+                                <span class="text-gray-500 dark:text-gray-400">{{ t(trait) }}</span>
                                 <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ Math.round(value * 100) }}%</span>
                             </div>
                             <div class="progress-bar">
@@ -411,46 +413,51 @@ onMounted(() => {
                 <!-- Communication Style Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Communication Style</h2>
+                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('communicationStyle') }}</h2>
                     </div>
                     <div class="card-body space-y-4">
-                        <div v-for="(value, style) in personality.communication_style" :key="style">
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-gray-500 dark:text-gray-400 capitalize">{{ style }}</span>
-                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ Math.round(value * 100) }}%</span>
+                        <template v-for="(value, style) in personality.communication_style" :key="style">
+                            <div v-if="typeof value === 'number'">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-gray-500 dark:text-gray-400">{{ t(style) }}</span>
+                                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ Math.round(value * 100) }}%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div
+                                        class="h-full rounded-full bg-purple-500 transition-all"
+                                        :style="{ width: (value * 100) + '%' }"
+                                    ></div>
+                                </div>
                             </div>
-                            <div class="progress-bar">
-                                <div
-                                    class="h-full rounded-full bg-purple-500 transition-all"
-                                    :style="{ width: (value * 100) + '%' }"
-                                ></div>
-                            </div>
-                        </div>
+                        </template>
                     </div>
                 </div>
 
                 <!-- Core Values Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Core Values</h2>
+                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('coreValues') }}</h2>
                     </div>
                     <div class="card-body">
                         <div class="flex flex-wrap gap-2">
                             <span
                                 v-for="value in personality.core_values"
                                 :key="value"
-                                class="badge badge-primary"
+                                class="badge badge-primary text-sm"
                             >
                                 {{ value }}
                             </span>
                         </div>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">
+                            {{ t('coreValuesNote') }}
+                        </p>
                     </div>
                 </div>
 
                 <!-- Self Description Card -->
                 <div class="card">
                     <div class="card-header">
-                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Self Description</h2>
+                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">{{ t('selfDescription') }}</h2>
                     </div>
                     <div class="card-body">
                         <p class="text-gray-600 dark:text-gray-300 italic">
@@ -466,23 +473,23 @@ onMounted(() => {
     <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Add LLM Configuration</h3>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('addLlmConfiguration') }}</h3>
             </div>
             <div class="p-6 space-y-4">
                 <!-- Name -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('name') }}</label>
                     <input
                         v-model="newConfig.name"
                         type="text"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
-                        placeholder="e.g., NVIDIA Kimi"
+                        :placeholder="t('configNamePlaceholder')"
                     />
                 </div>
 
                 <!-- Driver -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Driver</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('driver') }}</label>
                     <select
                         v-model="newConfig.driver"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
@@ -495,13 +502,13 @@ onMounted(() => {
 
                 <!-- Model -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('model') }}</label>
                     <input
                         v-model="newConfig.model"
                         type="text"
                         list="popular-models"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
-                        :placeholder="selectedDriverInfo.popular_models?.[0] || 'model-name'"
+                        :placeholder="selectedDriverInfo.popular_models?.[0] || t('modelPlaceholder')"
                     />
                     <datalist id="popular-models">
                         <option v-for="model in selectedDriverInfo.popular_models" :key="model" :value="model" />
@@ -513,18 +520,18 @@ onMounted(() => {
 
                 <!-- API Key -->
                 <div v-if="selectedDriverInfo.requires_api_key">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('apiKey') }}</label>
                     <input
                         v-model="newConfig.api_key"
                         type="password"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
-                        placeholder="sk-..."
+                        :placeholder="t('apiKeyPlaceholder')"
                     />
                 </div>
 
                 <!-- Base URL -->
                 <div v-if="selectedDriverInfo.requires_base_url">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('baseUrl') }}</label>
                     <input
                         v-model="newConfig.base_url"
                         type="url"
@@ -535,7 +542,7 @@ onMounted(() => {
 
                 <!-- Priority -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority (0-100)</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('priority') }} (0-100)</label>
                     <input
                         v-model.number="newConfig.priority"
                         type="number"
@@ -543,13 +550,13 @@ onMounted(() => {
                         max="100"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
                     />
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Higher priority = tried first for fallback</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('priorityDescription') }}</p>
                 </div>
 
                 <!-- Options -->
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Temperature</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('temperature') }}</label>
                         <input
                             v-model.number="newConfig.options.temperature"
                             type="number"
@@ -560,7 +567,7 @@ onMounted(() => {
                         />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Tokens</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('maxTokens') }}</label>
                         <input
                             v-model.number="newConfig.options.max_tokens"
                             type="number"
@@ -569,7 +576,7 @@ onMounted(() => {
                         />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Top P</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('topP') }}</label>
                         <input
                             v-model.number="newConfig.options.top_p"
                             type="number"
@@ -585,11 +592,11 @@ onMounted(() => {
                 <div class="flex gap-6">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input v-model="newConfig.is_active" type="checkbox" class="w-4 h-4 text-entity-600 rounded focus:ring-entity-500" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">Active</span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('activeConfiguration') }}</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input v-model="newConfig.is_default" type="checkbox" class="w-4 h-4 text-entity-600 rounded focus:ring-entity-500" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">Set as default</span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('setAsDefault') }}</span>
                     </label>
                 </div>
             </div>
@@ -598,13 +605,13 @@ onMounted(() => {
                     @click="showAddModal = false; resetNewConfig()"
                     class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
-                    Cancel
+                    {{ t('cancel') }}
                 </button>
                 <button
                     @click="createConfiguration"
                     class="px-4 py-2 bg-entity-600 text-white rounded-lg hover:bg-entity-700 transition-colors"
                 >
-                    Create
+                    {{ t('create') }}
                 </button>
             </div>
         </div>
@@ -614,12 +621,12 @@ onMounted(() => {
     <div v-if="showEditModal && editingConfig" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit LLM Configuration</h3>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('editLlmConfiguration') }}</h3>
             </div>
             <div class="p-6 space-y-4">
                 <!-- Name -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('name') }}</label>
                     <input
                         v-model="editingConfig.name"
                         type="text"
@@ -629,7 +636,7 @@ onMounted(() => {
 
                 <!-- Driver -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Driver</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('driver') }}</label>
                     <select
                         v-model="editingConfig.driver"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
@@ -642,7 +649,7 @@ onMounted(() => {
 
                 <!-- Model -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('model') }}</label>
                     <input
                         v-model="editingConfig.model"
                         type="text"
@@ -656,21 +663,21 @@ onMounted(() => {
 
                 <!-- API Key -->
                 <div v-if="editDriverInfo.requires_api_key">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('apiKey') }}</label>
                     <input
                         v-model="editingConfig.api_key"
                         type="password"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
-                        placeholder="Leave empty to keep current"
+                        :placeholder="t('apiKeyKeepCurrent')"
                     />
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {{ editingConfig.has_api_key ? 'API key is set. Leave empty to keep current.' : 'No API key set.' }}
+                        {{ editingConfig.has_api_key ? t('apiKeySetKeepCurrent') : t('noApiKeySet') }}
                     </p>
                 </div>
 
                 <!-- Base URL -->
                 <div v-if="editDriverInfo.requires_base_url">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('baseUrl') }}</label>
                     <input
                         v-model="editingConfig.base_url"
                         type="url"
@@ -681,7 +688,7 @@ onMounted(() => {
 
                 <!-- Priority -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority (0-100)</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('priority') }} (0-100)</label>
                     <input
                         v-model.number="editingConfig.priority"
                         type="number"
@@ -694,7 +701,7 @@ onMounted(() => {
                 <!-- Options -->
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Temperature</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('temperature') }}</label>
                         <input
                             v-model.number="editingConfig.options.temperature"
                             type="number"
@@ -705,7 +712,7 @@ onMounted(() => {
                         />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Tokens</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('maxTokens') }}</label>
                         <input
                             v-model.number="editingConfig.options.max_tokens"
                             type="number"
@@ -714,7 +721,7 @@ onMounted(() => {
                         />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Top P</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('topP') }}</label>
                         <input
                             v-model.number="editingConfig.options.top_p"
                             type="number"
@@ -730,11 +737,11 @@ onMounted(() => {
                 <div class="flex gap-6">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input v-model="editingConfig.is_active" type="checkbox" class="w-4 h-4 text-entity-600 rounded focus:ring-entity-500" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">Active</span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('activeConfiguration') }}</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input v-model="editingConfig.is_default" type="checkbox" class="w-4 h-4 text-entity-600 rounded focus:ring-entity-500" />
-                        <span class="text-sm text-gray-700 dark:text-gray-300">Set as default</span>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('setAsDefault') }}</span>
                     </label>
                 </div>
             </div>
@@ -743,13 +750,13 @@ onMounted(() => {
                     @click="showEditModal = false; editingConfig = null"
                     class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
-                    Cancel
+                    {{ t('cancel') }}
                 </button>
                 <button
                     @click="updateConfiguration"
                     class="px-4 py-2 bg-entity-600 text-white rounded-lg hover:bg-entity-700 transition-colors"
                 >
-                    Save Changes
+                    {{ t('saveChanges') }}
                 </button>
             </div>
         </div>
