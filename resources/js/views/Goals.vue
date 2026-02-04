@@ -53,7 +53,7 @@ onMounted(fetchGoals);
 </script>
 
 <template>
-    <div class="p-8 bg-gray-50 dark:bg-gray-950 min-h-full transition-colors duration-200">
+    <div class="p-8 bg-gray-50 dark:bg-gray-950 h-full overflow-y-auto transition-colors duration-200">
         <div class="max-w-4xl mx-auto">
             <!-- Header -->
             <div class="mb-8">

@@ -94,7 +94,7 @@ services:
       - mysql
       - redis
 
-  # Queue Worker - Think (Bewusstseins-Loop)
+  # Queue Worker - Think (Consciousness Loop)
   worker-think:
     build:
       context: ./docker/app
@@ -114,7 +114,7 @@ services:
       - redis
       - ollama
 
-  # Queue Worker - Observe (Moltbook, Discord beobachten)
+  # Queue Worker - Observe (Moltbook, Discord monitoring)
   worker-observe:
     build:
       context: ./docker/app
@@ -133,7 +133,7 @@ services:
       - mysql
       - redis
 
-  # Queue Worker - Tools (Datei-Operationen, Web, etc.)
+  # Queue Worker - Tools (File operations, Web, etc.)
   worker-tools:
     build:
       context: ./docker/app
@@ -173,20 +173,20 @@ services:
 
   # Ollama LLM Server
   #
-  # GPU-Unterstützung nach Plattform:
+  # GPU support by platform:
   # ┌─────────────────┬────────────────────────────────────────────────┐
-  # │ Plattform       │ Voraussetzung                                  │
+  # │ Platform        │ Requirements                                   │
   # ├─────────────────┼────────────────────────────────────────────────┤
-  # │ Linux + NVIDIA  │ NVIDIA Container Toolkit installieren          │
-  # │ Linux + AMD     │ ROCm installieren                              │
-  # │ Windows + NVIDIA│ Docker Desktop mit WSL2 + NVIDIA Toolkit       │
-  # │ Mac (Intel)     │ Nur CPU (keine GPU-Unterstützung in Docker)    │
-  # │ Mac (Apple Si.) │ Ollama nativ installieren für Metal-Support    │
+  # │ Linux + NVIDIA  │ Install NVIDIA Container Toolkit               │
+  # │ Linux + AMD     │ Install ROCm                                   │
+  # │ Windows + NVIDIA│ Docker Desktop with WSL2 + NVIDIA Toolkit      │
+  # │ Mac (Intel)     │ CPU only (no GPU support in Docker)            │
+  # │ Mac (Apple Si.) │ Install Ollama natively for Metal support      │
   # └─────────────────┴────────────────────────────────────────────────┘
   #
-  # Für Mac mit Apple Silicon empfohlen:
+  # For Mac with Apple Silicon recommended:
   #   brew install ollama && ollama serve
-  #   Dann OLLAMA_BASE_URL=http://host.docker.internal:11434 setzen
+  #   Then set OLLAMA_BASE_URL=http://host.docker.internal:11434
   #
   ollama:
     image: ollama/ollama:latest
@@ -200,11 +200,11 @@ services:
       - openentity
     environment:
       - OLLAMA_HOST=0.0.0.0
-      # Optimierungen
+      # Optimizations
       - OLLAMA_NUM_PARALLEL=${OLLAMA_NUM_PARALLEL:-2}
       - OLLAMA_MAX_LOADED_MODELS=${OLLAMA_MAX_LOADED_MODELS:-1}
-    # GPU-Support: Siehe docker-compose.gpu.yml für NVIDIA-Konfiguration
-    # Für NVIDIA GPU: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+    # GPU Support: See docker-compose.gpu.yml for NVIDIA configuration
+    # For NVIDIA GPU: docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
     #
     # Healthcheck
     healthcheck:
@@ -214,7 +214,7 @@ services:
       retries: 3
       start_period: 60s
 
-  # Scheduler (für periodische Tasks)
+  # Scheduler (for periodic tasks)
   scheduler:
     build:
       context: ./docker/app

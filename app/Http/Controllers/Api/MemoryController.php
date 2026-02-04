@@ -4,14 +4,19 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Entity\MemoryService;
+use App\Services\Entity\SemanticMemoryService;
+use App\Services\Entity\MemoryConsolidationService;
 use App\Models\Memory;
+use App\Models\MemorySummary;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MemoryController extends Controller
 {
     public function __construct(
-        private MemoryService $memoryService
+        private MemoryService $memoryService,
+        private ?SemanticMemoryService $semanticMemoryService = null,
+        private ?MemoryConsolidationService $consolidationService = null
     ) {}
 
     /**
@@ -160,5 +165,159 @@ class MemoryController extends Controller
         return response()->json([
             'learned' => $memories,
         ]);
+    }
+
+    /**
+     * Semantic search for memories.
+     *
+     * Uses embeddings and vector similarity to find memories based on meaning.
+     */
+    public function semanticSearch(Request $request): JsonResponse
+    {
+        $request->validate([
+            'q' => 'required|string|min:2|max:500',
+            'limit' => 'nullable|integer|min:1|max:50',
+            'threshold' => 'nullable|numeric|min:0|max:1',
+        ]);
+
+        if (!$this->semanticMemoryService) {
+            return response()->json([
+                'error' => 'Semantic search is not available',
+            ], 503);
+        }
+
+        $query = $request->input('q');
+        $limit = $request->input('limit', 10);
+        $threshold = $request->input('threshold', 0.5);
+
+        $memories = $this->semanticMemoryService->search($query, $limit, $threshold);
+
+        return response()->json([
+            'query' => $query,
+            'count' => $memories->count(),
+            'data' => $memories->map(function ($memory) {
+                return [
+                    'id' => $memory->id,
+                    'type' => $memory->type,
+                    'layer' => $memory->layer ?? 'episodic',
+                    'content' => $memory->content,
+                    'summary' => $memory->summary,
+                    'importance' => $memory->importance,
+                    'similarity' => $memory->similarity ?? null,
+                    'created_at' => $memory->created_at,
+                ];
+            }),
+        ]);
+    }
+
+    /**
+     * Find semantically similar memories to a given memory.
+     */
+    public function semanticRelated(Memory $memory): JsonResponse
+    {
+        if (!$this->semanticMemoryService) {
+            return response()->json([
+                'error' => 'Semantic search is not available',
+            ], 503);
+        }
+
+        $related = $this->semanticMemoryService->findSimilarMemories($memory, 5);
+
+        return response()->json([
+            'reference_memory_id' => $memory->id,
+            'count' => $related->count(),
+            'data' => $related->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'type' => $m->type,
+                    'content' => $m->content,
+                    'summary' => $m->summary,
+                    'similarity' => $m->similarity ?? null,
+                ];
+            }),
+        ]);
+    }
+
+    /**
+     * Get memories by layer.
+     */
+    public function byLayer(Request $request, string $layer): JsonResponse
+    {
+        $validLayers = ['episodic', 'semantic', 'procedural'];
+
+        if (!in_array($layer, $validLayers)) {
+            return response()->json([
+                'error' => 'Invalid layer. Must be one of: ' . implode(', ', $validLayers),
+            ], 400);
+        }
+
+        $memories = Memory::where('layer', $layer)
+            ->where('is_consolidated', false)
+            ->orderByDesc('importance')
+            ->orderByDesc('created_at')
+            ->limit($request->limit ?? 20)
+            ->get();
+
+        return response()->json([
+            'layer' => $layer,
+            'count' => $memories->count(),
+            'data' => $memories,
+        ]);
+    }
+
+    /**
+     * Get memory summaries (consolidated memories).
+     */
+    public function summaries(Request $request): JsonResponse
+    {
+        $request->validate([
+            'type' => 'nullable|string|in:daily,weekly,monthly',
+            'limit' => 'nullable|integer|min:1|max:50',
+        ]);
+
+        $query = MemorySummary::latest();
+
+        if ($request->type) {
+            $query->where('period_type', $request->type);
+        }
+
+        $summaries = $query->limit($request->limit ?? 20)->get();
+
+        return response()->json([
+            'count' => $summaries->count(),
+            'data' => $summaries,
+        ]);
+    }
+
+    /**
+     * Get embedding statistics.
+     */
+    public function embeddingStats(): JsonResponse
+    {
+        if (!$this->semanticMemoryService) {
+            return response()->json([
+                'error' => 'Semantic memory service is not available',
+            ], 503);
+        }
+
+        $stats = $this->semanticMemoryService->getStats();
+
+        return response()->json($stats);
+    }
+
+    /**
+     * Get consolidation statistics.
+     */
+    public function consolidationStats(): JsonResponse
+    {
+        if (!$this->consolidationService) {
+            return response()->json([
+                'error' => 'Consolidation service is not available',
+            ], 503);
+        }
+
+        $stats = $this->consolidationService->getStats();
+
+        return response()->json($stats);
     }
 }

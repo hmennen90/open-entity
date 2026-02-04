@@ -13,11 +13,11 @@ class Thought extends Model
     protected $fillable = [
         'content',
         'type', // 'observation', 'reflection', 'decision', 'emotion', 'curiosity'
-        'trigger', // Was den Gedanken ausgelöst hat
-        'context', // Zusätzlicher Kontext
-        'intensity', // 0.0 - 1.0, wie "stark" der Gedanke ist
-        'led_to_action', // Ob der Gedanke zu einer Aktion führte
-        'action_taken', // Welche Aktion
+        'trigger', // What triggered the thought
+        'context', // Additional context
+        'intensity', // 0.0 - 1.0, how "strong" the thought is
+        'led_to_action', // Whether the thought led to an action
+        'action_taken', // Which action was taken
     ];
 
     protected $casts = [
@@ -27,7 +27,7 @@ class Thought extends Model
     ];
 
     /**
-     * Beziehung zu Memories die aus diesem Gedanken entstanden.
+     * Relationship to memories that emerged from this thought.
      */
     public function memories(): HasMany
     {

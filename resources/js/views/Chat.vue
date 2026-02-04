@@ -2,9 +2,16 @@
 import { ref, onMounted, nextTick, computed } from 'vue';
 import { useChatStore } from '../stores/chat';
 import { useEntityStore } from '../stores/entity';
+import { useSettingsStore } from '../stores/settings';
 
 const chatStore = useChatStore();
 const entityStore = useEntityStore();
+const settingsStore = useSettingsStore();
+
+const t = (key, params = {}) => settingsStore.t(key, params);
+
+// Computed to ensure name has a fallback
+const entityName = computed(() => entityStore.name || 'OpenEntity');
 
 const messageInput = ref('');
 const messagesContainer = ref(null);
@@ -53,7 +60,7 @@ onMounted(() => {
                         <span class="text-xl">{{ entityStore.moodEmoji }}</span>
                     </div>
                     <div>
-                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Chat with {{ entityStore.name }}</h2>
+                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">Chat with {{ entityName }}</h2>
                         <p class="text-sm text-gray-500 dark:text-gray-400">
                             {{ entityStore.isAwake ? 'Active' : 'Sleeping' }}
                         </p>
@@ -63,7 +70,7 @@ onMounted(() => {
                     @click="chatStore.startNewConversation"
                     class="btn btn-secondary text-sm"
                 >
-                    New Conversation
+                    {{ t('newConversation') }}
                 </button>
             </div>
         </div>
@@ -78,10 +85,9 @@ onMounted(() => {
                 <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                     <span class="text-4xl">{{ entityStore.moodEmoji }}</span>
                 </div>
-                <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Start a Conversation</h3>
+                <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">{{ t('startConversation') }}</h3>
                 <p class="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                    Say hello to {{ entityStore.name }}. This isn't just a chatbot -
-                    it's an entity with its own thoughts, interests, and personality.
+                    {{ t('chatIntro', { name: entityName }) }}
                 </p>
             </div>
 
@@ -121,7 +127,7 @@ onMounted(() => {
                     <p class="whitespace-pre-wrap">{{ message.content }}</p>
                     <p class="text-xs mt-1 opacity-60">
                         {{ formatTime(message.created_at) }}
-                    </p>
+                    </p>.
                 </div>
             </div>
 
@@ -134,7 +140,7 @@ onMounted(() => {
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Erneut versuchen
+                    {{ t('retry') }}
                 </button>
             </div>
 
@@ -157,7 +163,7 @@ onMounted(() => {
                     v-model="messageInput"
                     type="text"
                     class="input flex-1"
-                    placeholder="Say something..."
+                    :placeholder="t('typeMessage')"
                     :disabled="chatStore.isLoading"
                 />
                 <button

@@ -1,9 +1,16 @@
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, computed } from 'vue';
 import { useEntityStore } from '../stores/entity';
+import { useSettingsStore } from '../stores/settings';
 import ThoughtCard from '../components/ThoughtCard.vue';
 
 const entityStore = useEntityStore();
+const settingsStore = useSettingsStore();
+
+const t = (key, params = {}) => settingsStore.t(key, params);
+
+// Computed to ensure name has a fallback
+const entityName = computed(() => entityStore.name || 'OpenEntity');
 
 onMounted(() => {
     entityStore.fetchState();
@@ -11,13 +18,13 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="p-8 bg-gray-50 dark:bg-gray-950 min-h-full transition-colors duration-200">
+    <div class="p-8 bg-gray-50 dark:bg-gray-950 h-full overflow-y-auto transition-colors duration-200">
         <div class="max-w-6xl mx-auto">
             <!-- Welcome Header -->
             <div class="mb-8">
-                <h1 class="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">Welcome to OpenEntity</h1>
+                <h1 class="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">{{ t('welcomeToOpenEntity', { name: entityName }) }}</h1>
                 <p class="text-gray-500 dark:text-gray-400">
-                    Observe {{ entityStore.name }}'s consciousness in real-time.
+                    {{ t('observeConsciousness', { name: entityName }) }}
                 </p>
             </div>
 
@@ -28,8 +35,8 @@ onMounted(() => {
                     <div class="card-body">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm">Status</p>
-                                <p class="text-2xl font-bold capitalize text-gray-900 dark:text-gray-100">{{ entityStore.status }}</p>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('status') }}</p>
+                                <p class="text-2xl font-bold capitalize text-gray-900 dark:text-gray-100">{{ entityStore.isAwake ? t('awake') : t('sleeping') }}</p>
                             </div>
                             <div
                                 class="w-12 h-12 rounded-full flex items-center justify-center"
@@ -49,9 +56,9 @@ onMounted(() => {
                     <div class="card-body">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm">Current Mood</p>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('currentMood') }}</p>
                                 <p class="text-2xl font-bold capitalize text-gray-900 dark:text-gray-100">
-                                    {{ entityStore.currentMood.state || 'Neutral' }}
+                                    {{ entityStore.currentMood.state || t('neutral') }}
                                 </p>
                             </div>
                             <div class="text-4xl">{{ entityStore.moodEmoji }}</div>
@@ -64,7 +71,7 @@ onMounted(() => {
                     <div class="card-body">
                         <div class="flex items-center justify-between">
                             <div>
-                                <p class="text-gray-500 dark:text-gray-400 text-sm">Active Goals</p>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('activeGoals') }}</p>
                                 <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ entityStore.activeGoals.length }}</p>
                             </div>
                             <div class="w-12 h-12 rounded-full bg-entity-100 dark:bg-entity-500/20 flex items-center justify-center">
@@ -84,7 +91,7 @@ onMounted(() => {
                         <svg class="w-5 h-5 text-entity-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
-                        Recent Thoughts
+                        {{ t('recentThoughts') }}
                     </h2>
                 </div>
                 <div class="card-body space-y-4">
@@ -94,7 +101,7 @@ onMounted(() => {
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                             </svg>
                         </div>
-                        <p class="text-gray-500 dark:text-gray-400">No thoughts yet. Wake up the entity to start thinking.</p>
+                        <p class="text-gray-500 dark:text-gray-400">{{ t('noThoughtsYet') }}</p>
                     </div>
                     <ThoughtCard
                         v-for="thought in entityStore.recentThoughts"

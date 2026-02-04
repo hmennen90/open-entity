@@ -13,24 +13,40 @@ class EntityController extends Controller
     ) {}
 
     /**
-     * Aktueller Status der Entität.
+     * Current status of the entity.
      */
     public function status(): JsonResponse
     {
+        $energyState = $this->entityService->getEnergyState();
+
         return response()->json([
             'name' => config('entity.name'),
             'status' => $this->entityService->getStatus(),
             'uptime' => $this->entityService->getUptime(),
             'last_thought_at' => $this->entityService->getLastThoughtAt(),
+            'energy' => $energyState,
         ]);
     }
 
     /**
-     * Vollständiger Zustand (Mind, aktuelle Ziele, etc.).
+     * Energy state of the entity.
+     */
+    public function energy(): JsonResponse
+    {
+        return response()->json([
+            'energy' => $this->entityService->getEnergyState(),
+            'log' => $this->entityService->getEnergyLog(20),
+        ]);
+    }
+
+    /**
+     * Full state (Mind, current goals, etc.).
      */
     public function state(): JsonResponse
     {
         return response()->json([
+            'name' => config('entity.name'),
+            'status' => $this->entityService->getStatus(),
             'personality' => $this->entityService->getPersonality(),
             'current_mood' => $this->entityService->getCurrentMood(),
             'active_goals' => $this->entityService->getActiveGoals(),
@@ -39,7 +55,7 @@ class EntityController extends Controller
     }
 
     /**
-     * Entität "aufwecken" (Think Loop starten).
+     * Wake up the entity (start think loop).
      */
     public function wake(): JsonResponse
     {
@@ -53,7 +69,7 @@ class EntityController extends Controller
     }
 
     /**
-     * Entität "schlafen legen" (Think Loop pausieren).
+     * Put the entity to sleep (pause think loop).
      */
     public function sleep(): JsonResponse
     {
@@ -67,7 +83,7 @@ class EntityController extends Controller
     }
 
     /**
-     * Persönlichkeit der Entität.
+     * Personality of the entity.
      */
     public function personality(): JsonResponse
     {
@@ -75,7 +91,7 @@ class EntityController extends Controller
     }
 
     /**
-     * Aktuelle Stimmung der Entität.
+     * Current mood of the entity.
      */
     public function mood(): JsonResponse
     {
@@ -83,7 +99,7 @@ class EntityController extends Controller
     }
 
     /**
-     * Verfügbare Tools.
+     * Available tools.
      */
     public function tools(): JsonResponse
     {

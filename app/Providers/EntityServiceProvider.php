@@ -2,11 +2,22 @@
 
 namespace App\Providers;
 
+use App\Services\LLM\NVidiaApiDriver;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Entity\EntityService;
+use App\Services\Entity\EnergyService;
 use App\Services\Entity\MindService;
 use App\Services\Entity\MemoryService;
 use App\Services\Entity\PersonalityService;
+use App\Services\Entity\SemanticMemoryService;
+use App\Services\Entity\WorkingMemoryService;
+use App\Services\Entity\MemoryLayerManager;
+use App\Services\Entity\MemoryConsolidationService;
+use App\Services\Embedding\EmbeddingService;
+use App\Services\Embedding\OllamaEmbeddingDriver;
+use App\Services\Embedding\OpenAIEmbeddingDriver;
+use App\Services\Embedding\OpenRouterEmbeddingDriver;
+use App\Services\Embedding\Contracts\EmbeddingDriverInterface;
 use App\Services\LLM\LLMService;
 use App\Services\LLM\OllamaDriver;
 use App\Services\LLM\OpenAIDriver;
@@ -31,6 +42,7 @@ class EntityServiceProvider extends ServiceProvider
                 'ollama' => new OllamaDriver(config('entity.llm.drivers.ollama')),
                 'openai' => new OpenAIDriver(config('entity.llm.drivers.openai')),
                 'openrouter' => new OpenRouterDriver(config('entity.llm.drivers.openrouter')),
+                'nvidia' => new NVidiaApiDriver(config('entity.llm.drivers.nvidia')),
                 default => new OllamaDriver(config('entity.llm.drivers.ollama')),
             };
         });
@@ -54,6 +66,81 @@ class EntityServiceProvider extends ServiceProvider
         // Entity Services
         $this->app->singleton(PersonalityService::class);
         $this->app->singleton(MemoryService::class);
+        $this->app->singleton(EnergyService::class);
+
+        // Embedding Driver
+        $this->app->singleton(EmbeddingDriverInterface::class, function ($app) {
+            $driver = config('entity.memory.embedding.driver', 'ollama');
+
+            return match ($driver) {
+                'ollama' => new OllamaEmbeddingDriver(
+                    config('entity.memory.embedding.drivers.ollama', [])
+                ),
+                'openai' => new OpenAIEmbeddingDriver(
+                    array_merge(
+                        ['api_key' => config('entity.llm.drivers.openai.api_key')],
+                        config('entity.memory.embedding.drivers.openai', [])
+                    )
+                ),
+                'openrouter' => new OpenRouterEmbeddingDriver(
+                    array_merge(
+                        ['api_key' => config('entity.llm.drivers.openrouter.api_key')],
+                        config('entity.memory.embedding.drivers.openrouter', [])
+                    )
+                ),
+                default => new OllamaEmbeddingDriver(
+                    config('entity.memory.embedding.drivers.ollama', [])
+                ),
+            };
+        });
+
+        // Embedding Service with optional fallback
+        $this->app->singleton(EmbeddingService::class, function ($app) {
+            $primaryDriver = $app->make(EmbeddingDriverInterface::class);
+
+            // Create fallback driver if configured differently
+            $fallbackDriver = null;
+            $primaryDriverType = config('entity.memory.embedding.driver', 'ollama');
+
+            // Fallback chain: Ollama -> OpenRouter -> OpenAI
+            if ($primaryDriverType === 'ollama') {
+                // If using Ollama, try OpenRouter as fallback
+                if (config('entity.llm.drivers.openrouter.api_key')) {
+                    $fallbackDriver = new OpenRouterEmbeddingDriver(
+                        array_merge(
+                            ['api_key' => config('entity.llm.drivers.openrouter.api_key')],
+                            config('entity.memory.embedding.drivers.openrouter', [])
+                        )
+                    );
+                }
+            } elseif ($primaryDriverType === 'openrouter') {
+                // If using OpenRouter, try Ollama as fallback (free, local)
+                $fallbackDriver = new OllamaEmbeddingDriver(
+                    config('entity.memory.embedding.drivers.ollama', [])
+                );
+            }
+
+            return new EmbeddingService($primaryDriver, $fallbackDriver);
+        });
+
+        // Working Memory Service (Redis-based)
+        $this->app->singleton(WorkingMemoryService::class);
+
+        // Semantic Memory Service
+        $this->app->singleton(SemanticMemoryService::class, function ($app) {
+            return new SemanticMemoryService(
+                $app->make(EmbeddingService::class),
+                $app->make(MemoryService::class)
+            );
+        });
+
+        // Memory Consolidation Service
+        $this->app->singleton(MemoryConsolidationService::class, function ($app) {
+            return new MemoryConsolidationService(
+                $app->make(LLMService::class),
+                $app->make(EmbeddingService::class)
+            );
+        });
 
         $this->app->singleton(MindService::class, function ($app) {
             return new MindService(
@@ -62,12 +149,25 @@ class EntityServiceProvider extends ServiceProvider
             );
         });
 
+        // Memory Layer Manager
+        $this->app->singleton(MemoryLayerManager::class, function ($app) {
+            return new MemoryLayerManager(
+                $app->make(PersonalityService::class),
+                $app->make(SemanticMemoryService::class),
+                $app->make(MemoryService::class),
+                $app->make(WorkingMemoryService::class)
+            );
+        });
+
         $this->app->singleton(EntityService::class, function ($app) {
             return new EntityService(
                 $app->make(MindService::class),
                 $app->make(MemoryService::class),
                 $app->make(LLMService::class),
-                $app->make(ToolRegistry::class)
+                $app->make(ToolRegistry::class),
+                $app->make(MemoryLayerManager::class),
+                $app->make(WorkingMemoryService::class),
+                $app->make(EnergyService::class)
             );
         });
     }

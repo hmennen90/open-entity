@@ -4,12 +4,13 @@ import axios from 'axios';
 
 export const useEntityStore = defineStore('entity', () => {
     // State
-    const name = ref('Nova');
+    const name = ref('OpenEntity');
     const status = ref('sleeping');
     const uptime = ref(null);
     const lastThoughtAt = ref(null);
     const personality = ref({});
     const currentMood = ref({});
+    const energy = ref({ level: 0.5, percent: 50, state: 'normal', hours_awake: 0, needs_sleep: false });
     const activeGoals = ref([]);
     const recentThoughts = ref([]);
     const isLoading = ref(false);
@@ -36,14 +37,24 @@ export const useEntityStore = defineStore('entity', () => {
     async function fetchStatus() {
         isLoading.value = true;
         try {
-            const response = await axios.get('/api/v1/entity');
-            name.value = response.data.name;
+            const response = await axios.get('/api/v1/entity/status');
+            name.value = response.data.name || 'OpenEntity';
             status.value = response.data.status;
             uptime.value = response.data.uptime;
             lastThoughtAt.value = response.data.last_thought_at;
+            if (response.data.energy) {
+                energy.value = response.data.energy;
+                // Also update mood energy for consistency
+                currentMood.value = {
+                    ...currentMood.value,
+                    energy: response.data.energy.level,
+                    energy_state: response.data.energy.state,
+                };
+            }
             error.value = null;
         } catch (err) {
             error.value = err.message;
+            console.error('Failed to fetch entity status:', err);
         } finally {
             isLoading.value = false;
         }
@@ -53,13 +64,21 @@ export const useEntityStore = defineStore('entity', () => {
         isLoading.value = true;
         try {
             const response = await axios.get('/api/v1/entity/state');
-            personality.value = response.data.personality;
-            currentMood.value = response.data.current_mood;
-            activeGoals.value = response.data.active_goals;
-            recentThoughts.value = response.data.recent_thoughts;
+            // Also update name and status if provided
+            if (response.data.name) {
+                name.value = response.data.name;
+            }
+            if (response.data.status) {
+                status.value = response.data.status;
+            }
+            personality.value = response.data.personality || {};
+            currentMood.value = response.data.current_mood || {};
+            activeGoals.value = response.data.active_goals || [];
+            recentThoughts.value = response.data.recent_thoughts || [];
             error.value = null;
         } catch (err) {
             error.value = err.message;
+            console.error('Failed to fetch entity state:', err);
         } finally {
             isLoading.value = false;
         }
@@ -156,6 +175,7 @@ export const useEntityStore = defineStore('entity', () => {
         lastThoughtAt,
         personality,
         currentMood,
+        energy,
         activeGoals,
         recentThoughts,
         isLoading,

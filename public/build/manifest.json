@@ -1,18 +1,18 @@
 {
-  "_ThoughtCard-CLQq18GM.js": {
-    "file": "assets/ThoughtCard-CLQq18GM.js",
+  "_ThoughtCard-B_nAucJS.js": {
+    "file": "assets/ThoughtCard-B_nAucJS.js",
     "name": "ThoughtCard",
     "imports": [
       "resources/js/app.js"
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-Duio7U7G.css",
+    "file": "assets/app-D1dlH68R.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-BXe2DA_a.js",
+    "file": "assets/app-CZMD7YBl.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -25,11 +25,11 @@
       "resources/js/views/Settings.vue"
     ],
     "css": [
-      "assets/app-DK6uhpbE.css"
+      "assets/app-ZKYs49ld.css"
     ]
   },
   "resources/js/views/Chat.vue": {
-    "file": "assets/Chat-WkaJlNvN.js",
+    "file": "assets/Chat-BE6ZFMf3.js",
     "name": "Chat",
     "src": "resources/js/views/Chat.vue",
     "isDynamicEntry": true,
@@ -38,7 +38,7 @@
     ]
   },
   "resources/js/views/Goals.vue": {
-    "file": "assets/Goals-CBaYe9QU.js",
+    "file": "assets/Goals-XWz7Bprc.js",
     "name": "Goals",
     "src": "resources/js/views/Goals.vue",
     "isDynamicEntry": true,
@@ -47,17 +47,17 @@
     ]
   },
   "resources/js/views/Home.vue": {
-    "file": "assets/Home-D53vEdpP.js",
+    "file": "assets/Home-EcDKzN0v.js",
     "name": "Home",
     "src": "resources/js/views/Home.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_ThoughtCard-CLQq18GM.js"
+      "_ThoughtCard-B_nAucJS.js"
     ]
   },
   "resources/js/views/Memory.vue": {
-    "file": "assets/Memory-gK1vYo1W.js",
+    "file": "assets/Memory-DGjtSt7Z.js",
     "name": "Memory",
     "src": "resources/js/views/Memory.vue",
     "isDynamicEntry": true,
@@ -65,24 +65,24 @@
       "resources/js/app.js"
     ],
     "css": [
-      "assets/Memory-DLE58zcN.css"
+      "assets/Memory-D1N6rN4j.css"
     ]
   },
   "resources/js/views/MindViewer.vue": {
-    "file": "assets/MindViewer-Dy5Tmut4.js",
+    "file": "assets/MindViewer-DdELO2RE.js",
     "name": "MindViewer",
     "src": "resources/js/views/MindViewer.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.js",
-      "_ThoughtCard-CLQq18GM.js"
+      "_ThoughtCard-B_nAucJS.js"
     ],
     "css": [
-      "assets/MindViewer-Dc9K3bj9.css"
+      "assets/MindViewer-D1APvEHy.css"
     ]
   },
   "resources/js/views/Settings.vue": {
-    "file": "assets/Settings-CoDOyxU1.js",
+    "file": "assets/Settings-CAlw44O0.js",
     "name": "Settings",
     "src": "resources/js/views/Settings.vue",
     "isDynamicEntry": true,

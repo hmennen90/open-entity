@@ -7,17 +7,17 @@ return [
     | Entity Configuration
     |--------------------------------------------------------------------------
     |
-    | Konfiguration für die autonome KI-Entität
+    | Configuration for the autonomous AI entity
     |
     */
 
-    // Name der Entität
+    // Name of the entity
     'name' => env('ENTITY_NAME', 'OpenEntity'),
 
-    // Think Loop Intervall in Sekunden
+    // Think loop interval in seconds
     'think_interval' => (int) env('ENTITY_THINK_INTERVAL', 30),
 
-    // Storage-Pfad für Mind & Memory
+    // Storage path for Mind & Memory
     'storage_path' => storage_path('entity'),
 
     /*
@@ -33,7 +33,7 @@ return [
             'ollama' => [
                 'base_url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
                 'model' => env('OLLAMA_MODEL', 'qwen-coder:30b'),
-                'timeout' => 300, // 5 Minuten für CPU-basierte Inferenz
+                'timeout' => 300, // 5 minutes for CPU-based inference
                 'options' => [
                     'temperature' => 0.8,
                     'top_p' => 0.9,
@@ -57,9 +57,19 @@ return [
                 'app_url' => env('APP_URL', 'http://localhost'),
                 'options' => [
                     'temperature' => 0.8,
-                    'max_tokens' => 4096,
+                    'max_tokens' => env('OPENROUTER_MAX_TOKENS', 4096),
                 ],
             ],
+            'nvidia' => [
+                'api_key' => env('NVIDIA_API_KEY'),
+                'model' => env('NVIDIA_MODEL', 'moonshotai/kimi-k2.5'),
+                'timeout' => 300, // 5 minutes for "thinking" models like kimi-k2.5
+                'options' => [
+                    'temperature' => 1.0,
+                    'top_p' => 1.0,
+                    'max_tokens' => env('NVIDIA_MAX_TOKENS', 4096),
+                ],
+            ]
         ],
     ],
 
@@ -70,14 +80,86 @@ return [
     */
 
     'mind' => [
-        // Maximale Anzahl aktueller Erinnerungen im Kontext
+        // Maximum number of recent memories in context
         'max_recent_memories' => 20,
 
-        // Maximale Anzahl aktueller Gedanken
+        // Maximum number of recent thoughts
         'max_recent_thoughts' => 10,
 
-        // Reflexions-Intervall (alle X Think-Zyklen eine tiefere Reflexion)
+        // Reflection interval (deeper reflection every X think cycles)
         'reflection_interval' => 10,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Memory Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Human-like memory system with 4 layers:
+    | - Core Identity (always loaded)
+    | - Semantic Memory (learned knowledge, index-based search)
+    | - Episodic Memory (experiences, vector-based search)
+    | - Working Memory (current context, in-memory)
+    |
+    */
+
+    'memory' => [
+        // Embedding configuration for semantic search
+        'embedding' => [
+            'driver' => env('MEMORY_EMBEDDING_DRIVER', 'ollama'),
+
+            'drivers' => [
+                'ollama' => [
+                    'base_url' => env('EMBEDDING_OLLAMA_BASE_URL', env('OLLAMA_BASE_URL', 'http://192.168.1.36:11434')),
+                    'model' => env('EMBEDDING_OLLAMA_MODEL', 'nomic-embed-text'),
+                    'timeout' => 60,
+                    'dimensions' => 768,
+                ],
+                'openai' => [
+                    'api_key' => env('OPENAI_API_KEY'),
+                    'model' => env('EMBEDDING_OPENAI_MODEL', 'text-embedding-3-small'),
+                    'timeout' => 30,
+                    'dimensions' => 1536,
+                ],
+                'openrouter' => [
+                    'api_key' => env('OPENROUTER_API_KEY'),
+                    'model' => env('EMBEDDING_OPENROUTER_MODEL', 'openai/text-embedding-3-small'),
+                    'timeout' => 30,
+                    'dimensions' => 1536,
+                ],
+            ],
+        ],
+
+        // Layer-specific settings
+        'layers' => [
+            'working' => [
+                'max_items' => 20,
+                'ttl_minutes' => 60,
+            ],
+            'episodic' => [
+                'max_in_context' => 10,
+                'similarity_threshold' => 0.7,
+            ],
+            'semantic' => [
+                'max_in_context' => 5,
+            ],
+        ],
+
+        // Consolidation settings (like sleep for memory)
+        'consolidation' => [
+            'enabled' => env('MEMORY_CONSOLIDATION_ENABLED', true),
+            'schedule' => '0 3 * * *',  // 3 AM daily
+            'archive_after_days' => 30,
+        ],
+
+        // Token budget allocation for context building
+        'context_budget' => [
+            'total' => 4000,
+            'core_identity' => 500,
+            'working_memory' => 1000,
+            'episodic' => 1500,
+            'semantic' => 1000,
+        ],
     ],
 
     /*
@@ -103,21 +185,21 @@ return [
     | Tools Configuration
     |--------------------------------------------------------------------------
     |
-    | Welche Tools der Entität zur Verfügung stehen
+    | Which tools are available to the entity
     |
     */
 
     'tools' => [
         'filesystem' => [
             'enabled' => true,
-            // Voller Zugriff auf das gesamte Projekt
+            // Full access to the entire project
             'allowed_paths' => [
                 base_path(),
             ],
         ],
         'bash' => [
             'enabled' => true,
-            // Leeres Array = alle Commands erlaubt
+            // Empty array = all commands allowed
             'allowed_commands' => [],
         ],
         'web' => [
@@ -129,7 +211,7 @@ return [
         ],
         'artisan' => [
             'enabled' => true,
-            // Leeres Array = voller Zugriff auf alle Commands
+            // Empty array = full access to all commands
             'allowed_commands' => [],
         ],
     ],

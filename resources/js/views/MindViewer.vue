@@ -1,23 +1,30 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useEntityStore } from '../stores/entity';
+import { useSettingsStore } from '../stores/settings';
 import ThoughtCard from '../components/ThoughtCard.vue';
 import axios from 'axios';
 
 const entityStore = useEntityStore();
+const settingsStore = useSettingsStore();
+
+const t = (key, params = {}) => settingsStore.t(key, params);
+
+// Computed to ensure name has a fallback
+const entityName = computed(() => entityStore.name || 'OpenEntity');
 
 const thoughts = ref([]);
 const isLoading = ref(true);
 const filter = ref('all');
 
-const filters = [
-    { value: 'all', label: 'All' },
-    { value: 'observation', label: 'Observations' },
-    { value: 'reflection', label: 'Reflections' },
-    { value: 'curiosity', label: 'Curiosities' },
-    { value: 'emotion', label: 'Emotions' },
-    { value: 'decision', label: 'Decisions' },
-];
+const filters = computed(() => [
+    { value: 'all', label: t('all') },
+    { value: 'observation', label: t('observations') },
+    { value: 'reflection', label: t('reflections') },
+    { value: 'curiosity', label: t('curiosities') },
+    { value: 'emotion', label: t('emotions') },
+    { value: 'decision', label: t('decisions') },
+]);
 
 async function fetchThoughts() {
     isLoading.value = true;
@@ -58,7 +65,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-    <div class="p-8 bg-gray-50 dark:bg-gray-950 min-h-full transition-colors duration-200">
+    <div class="p-8 bg-gray-50 dark:bg-gray-950 h-full overflow-y-auto transition-colors duration-200">
         <div class="max-w-4xl mx-auto">
             <!-- Header -->
             <div class="flex items-center justify-between mb-8">
@@ -67,17 +74,17 @@ onUnmounted(() => {
                         <svg class="w-8 h-8 text-entity-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
-                        Mind Viewer
+                        {{ t('mindViewer') }}
                     </h1>
                     <p class="text-gray-500 dark:text-gray-400">
-                        Watch {{ entityStore.name }}'s thoughts in real-time
+                        {{ t('watchThoughts', { name: entityName }) }}
                     </p>
                 </div>
 
                 <!-- Live Indicator -->
                 <div class="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-500/20 rounded-full">
                     <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span class="text-sm text-green-700 dark:text-green-400 font-medium">Live</span>
+                    <span class="text-sm text-green-700 dark:text-green-400 font-medium">{{ t('live') }}</span>
                 </div>
             </div>
 
@@ -99,7 +106,7 @@ onUnmounted(() => {
                 <!-- Loading State -->
                 <div v-if="isLoading" class="text-center py-12">
                     <div class="animate-spin w-8 h-8 border-4 border-entity-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                    <p class="text-gray-500 dark:text-gray-400">Loading thoughts...</p>
+                    <p class="text-gray-500 dark:text-gray-400">{{ t('loadingThoughts') }}</p>
                 </div>
 
                 <!-- Empty State -->
@@ -109,12 +116,9 @@ onUnmounted(() => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                     </div>
-                    <h3 class="empty-state-title">No thoughts yet</h3>
+                    <h3 class="empty-state-title">{{ t('noThoughts') }}</h3>
                     <p class="empty-state-description">
-                        {{ entityStore.isAwake
-                            ? 'Waiting for the next thought cycle...'
-                            : 'Wake up the entity to start thinking.'
-                        }}
+                        {{ entityStore.isAwake ? t('waitingThought') : t('wakeEntity') }}
                     </p>
                 </div>
 

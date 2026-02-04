@@ -35,7 +35,7 @@ class ThoughtOccurred implements ShouldBroadcast
      */
     public function broadcastWith(): array
     {
-        return [
+        $data = [
             'id' => $this->thought->id,
             'type' => $this->thought->type,
             'content' => $this->thought->content,
@@ -44,6 +44,14 @@ class ThoughtOccurred implements ShouldBroadcast
             'action_taken' => $this->thought->action_taken,
             'created_at' => $this->thought->created_at->toIso8601String(),
         ];
+
+        // Include tool execution details if present
+        $context = $this->thought->context;
+        if (!empty($context['tool_execution'])) {
+            $data['tool_execution'] = $context['tool_execution'];
+        }
+
+        return $data;
     }
 
     /**

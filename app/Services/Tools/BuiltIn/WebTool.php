@@ -11,10 +11,12 @@ use Illuminate\Support\Facades\Http;
 class WebTool implements ToolInterface
 {
     private int $timeout;
+    private string $userAgent;
 
     public function __construct(int $timeout = 30)
     {
         $this->timeout = $timeout;
+        $this->userAgent = 'OpenEntity/1.0 (Autonomous AI Entity; +https://github.com/openentity; compatible) PHP/' . PHP_VERSION;
     }
 
     public function name(): string
@@ -97,6 +99,14 @@ class WebTool implements ToolInterface
         $headers = $params['headers'] ?? [];
         $body = $params['body'] ?? [];
         $timeout = $params['timeout'] ?? $this->timeout;
+
+        // Merge default headers with user-provided headers
+        $defaultHeaders = [
+            'User-Agent' => $this->userAgent,
+            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,application/json,*/*;q=0.8',
+            'Accept-Language' => 'en-US,en;q=0.9,de;q=0.8',
+        ];
+        $headers = array_merge($defaultHeaders, $headers);
 
         try {
             $request = Http::timeout($timeout)

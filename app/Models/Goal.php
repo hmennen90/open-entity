@@ -12,13 +12,13 @@ class Goal extends Model
     protected $fillable = [
         'title',
         'description',
-        'motivation', // Warum dieses Ziel?
+        'motivation', // Why this goal?
         'type', // 'curiosity', 'social', 'learning', 'creative', 'self-improvement'
         'priority', // 0.0 - 1.0
         'status', // 'active', 'paused', 'completed', 'abandoned'
-        'progress', // 0.0 - 1.0
-        'progress_notes', // Notizen zum Fortschritt (JSON Array)
-        'origin', // Wie entstand das Ziel? 'self', 'suggested', 'derived'
+        'progress', // 0 - 100 (percentage)
+        'progress_notes', // Progress notes (JSON Array)
+        'origin', // How did the goal originate? 'self', 'suggested', 'derived'
         'completed_at',
         'abandoned_reason',
     ];
@@ -31,7 +31,7 @@ class Goal extends Model
     ];
 
     /**
-     * Scope für aktive Ziele.
+     * Scope for active goals.
      */
     public function scopeActive($query)
     {
@@ -39,7 +39,7 @@ class Goal extends Model
     }
 
     /**
-     * Scope für abgeschlossene Ziele.
+     * Scope for completed goals.
      */
     public function scopeCompleted($query)
     {

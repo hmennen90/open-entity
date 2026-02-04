@@ -1,13 +1,41 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useEntityStore } from '../stores/entity';
 import { useSettingsStore } from '../stores/settings';
+import axios from 'axios';
 
 const entityStore = useEntityStore();
 const settingsStore = useSettingsStore();
 
 const personality = ref({});
 const isLoading = ref(true);
+
+// LLM Configuration State
+const llmConfigurations = ref([]);
+const llmDrivers = ref({});
+const isLoadingLlm = ref(true);
+const showAddModal = ref(false);
+const showEditModal = ref(false);
+const editingConfig = ref(null);
+const testResult = ref(null);
+const isTesting = ref(null);
+
+// New configuration form
+const newConfig = ref({
+    name: '',
+    driver: 'nvidia',
+    model: '',
+    api_key: '',
+    base_url: '',
+    is_active: true,
+    is_default: false,
+    priority: 50,
+    options: {
+        temperature: 1.0,
+        max_tokens: 4096,
+        top_p: 1.0,
+    },
+});
 
 async function loadSettings() {
     isLoading.value = true;
@@ -16,11 +44,153 @@ async function loadSettings() {
     isLoading.value = false;
 }
 
-onMounted(loadSettings);
+async function loadLlmConfigurations() {
+    isLoadingLlm.value = true;
+    try {
+        const [configResponse, driversResponse] = await Promise.all([
+            axios.get('/api/v1/llm/configurations'),
+            axios.get('/api/v1/llm/drivers'),
+        ]);
+        llmConfigurations.value = configResponse.data.data;
+        llmDrivers.value = driversResponse.data.data;
+    } catch (error) {
+        console.error('Failed to load LLM configurations:', error);
+    }
+    isLoadingLlm.value = false;
+}
+
+async function createConfiguration() {
+    try {
+        await axios.post('/api/v1/llm/configurations', newConfig.value);
+        showAddModal.value = false;
+        resetNewConfig();
+        await loadLlmConfigurations();
+    } catch (error) {
+        console.error('Failed to create configuration:', error);
+        alert('Failed to create configuration: ' + (error.response?.data?.message || error.message));
+    }
+}
+
+async function updateConfiguration() {
+    if (!editingConfig.value) return;
+    try {
+        await axios.put(`/api/v1/llm/configurations/${editingConfig.value.id}`, editingConfig.value);
+        showEditModal.value = false;
+        editingConfig.value = null;
+        await loadLlmConfigurations();
+    } catch (error) {
+        console.error('Failed to update configuration:', error);
+        alert('Failed to update configuration: ' + (error.response?.data?.message || error.message));
+    }
+}
+
+async function deleteConfiguration(config) {
+    if (!confirm(`Delete configuration "${config.name}"?`)) return;
+    try {
+        await axios.delete(`/api/v1/llm/configurations/${config.id}`);
+        await loadLlmConfigurations();
+    } catch (error) {
+        console.error('Failed to delete configuration:', error);
+        alert('Failed to delete configuration: ' + (error.response?.data?.message || error.message));
+    }
+}
+
+async function testConfiguration(config) {
+    isTesting.value = config.id;
+    testResult.value = null;
+    try {
+        const response = await axios.post(`/api/v1/llm/configurations/${config.id}/test`);
+        testResult.value = { configId: config.id, success: true, ...response.data.data };
+    } catch (error) {
+        testResult.value = {
+            configId: config.id,
+            success: false,
+            error: error.response?.data?.error || error.message
+        };
+    }
+    isTesting.value = null;
+}
+
+async function setAsDefault(config) {
+    try {
+        await axios.post(`/api/v1/llm/configurations/${config.id}/default`);
+        await loadLlmConfigurations();
+    } catch (error) {
+        console.error('Failed to set default:', error);
+    }
+}
+
+async function resetCircuitBreaker(config) {
+    try {
+        await axios.post(`/api/v1/llm/configurations/${config.id}/reset`);
+        await loadLlmConfigurations();
+    } catch (error) {
+        console.error('Failed to reset circuit breaker:', error);
+    }
+}
+
+function openEditModal(config) {
+    editingConfig.value = { ...config, api_key: '' };
+    if (!editingConfig.value.options) {
+        editingConfig.value.options = { temperature: 1.0, max_tokens: 4096, top_p: 1.0 };
+    }
+    showEditModal.value = true;
+}
+
+function resetNewConfig() {
+    newConfig.value = {
+        name: '',
+        driver: 'nvidia',
+        model: '',
+        api_key: '',
+        base_url: '',
+        is_active: true,
+        is_default: false,
+        priority: 50,
+        options: {
+            temperature: 1.0,
+            max_tokens: 4096,
+            top_p: 1.0,
+        },
+    };
+}
+
+const selectedDriverInfo = computed(() => {
+    return llmDrivers.value[newConfig.value.driver] || {};
+});
+
+const editDriverInfo = computed(() => {
+    return editingConfig.value ? (llmDrivers.value[editingConfig.value.driver] || {}) : {};
+});
+
+function getStatusColor(status) {
+    const colors = {
+        active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+        ready: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+        error: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+        disabled: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
+    };
+    return colors[status] || colors.ready;
+}
+
+function getDriverIcon(driver) {
+    const icons = {
+        ollama: '🦙',
+        openai: '🤖',
+        openrouter: '🌐',
+        nvidia: '💚',
+    };
+    return icons[driver] || '🔧';
+}
+
+onMounted(() => {
+    loadSettings();
+    loadLlmConfigurations();
+});
 </script>
 
 <template>
-    <div class="p-8 bg-gray-50 dark:bg-gray-950 min-h-full transition-colors duration-200">
+    <div class="p-8 bg-gray-50 dark:bg-gray-950 h-full overflow-y-auto transition-colors duration-200">
         <div class="max-w-4xl mx-auto">
             <!-- Header -->
             <div class="mb-8">
@@ -43,6 +213,111 @@ onMounted(loadSettings);
             </div>
 
             <div v-else class="space-y-6">
+                <!-- LLM Configurations Card -->
+                <div class="card">
+                    <div class="card-header flex items-center justify-between">
+                        <h2 class="font-semibold text-gray-900 dark:text-gray-100">LLM Configurations</h2>
+                        <button
+                            @click="showAddModal = true"
+                            class="px-4 py-2 bg-entity-600 text-white rounded-lg text-sm font-medium hover:bg-entity-700 transition-colors"
+                        >
+                            + Add Configuration
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div v-if="isLoadingLlm" class="text-center py-8">
+                            <div class="animate-spin w-6 h-6 border-4 border-entity-500 border-t-transparent rounded-full mx-auto"></div>
+                        </div>
+                        <div v-else-if="llmConfigurations.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            No LLM configurations yet. Add one to get started.
+                        </div>
+                        <div v-else class="space-y-4">
+                            <div
+                                v-for="config in llmConfigurations"
+                                :key="config.id"
+                                class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-entity-300 dark:hover:border-entity-700 transition-colors"
+                                :class="{ 'ring-2 ring-entity-500': config.is_default }"
+                            >
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-2xl">{{ getDriverIcon(config.driver) }}</span>
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ config.name }}</h3>
+                                                <span v-if="config.is_default" class="px-2 py-0.5 text-xs font-medium bg-entity-100 text-entity-800 dark:bg-entity-900 dark:text-entity-300 rounded">
+                                                    Default
+                                                </span>
+                                                <span :class="getStatusColor(config.status)" class="px-2 py-0.5 text-xs font-medium rounded capitalize">
+                                                    {{ config.status }}
+                                                </span>
+                                            </div>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                                {{ config.driver }} / {{ config.model }}
+                                            </p>
+                                            <p v-if="config.last_used_at" class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                                Last used: {{ new Date(config.last_used_at).toLocaleString() }}
+                                            </p>
+                                            <p v-if="config.last_error" class="text-xs text-red-500 mt-1">
+                                                Error: {{ config.last_error.substring(0, 100) }}...
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button
+                                            @click="testConfiguration(config)"
+                                            :disabled="isTesting === config.id"
+                                            class="p-2 text-gray-500 hover:text-entity-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                            title="Test"
+                                        >
+                                            <span v-if="isTesting === config.id" class="animate-spin">⏳</span>
+                                            <span v-else>🧪</span>
+                                        </button>
+                                        <button
+                                            v-if="!config.is_default"
+                                            @click="setAsDefault(config)"
+                                            class="p-2 text-gray-500 hover:text-entity-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                            title="Set as default"
+                                        >
+                                            ⭐
+                                        </button>
+                                        <button
+                                            v-if="config.status === 'error'"
+                                            @click="resetCircuitBreaker(config)"
+                                            class="p-2 text-gray-500 hover:text-green-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                            title="Reset circuit breaker"
+                                        >
+                                            🔄
+                                        </button>
+                                        <button
+                                            @click="openEditModal(config)"
+                                            class="p-2 text-gray-500 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                            title="Edit"
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            @click="deleteConfiguration(config)"
+                                            class="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                            title="Delete"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Test Result -->
+                                <div v-if="testResult && testResult.configId === config.id" class="mt-3 p-3 rounded-lg text-sm" :class="testResult.success ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'">
+                                    <p v-if="testResult.success" class="text-green-700 dark:text-green-300">
+                                        ✅ Test successful ({{ testResult.duration_ms }}ms): "{{ testResult.response }}"
+                                    </p>
+                                    <p v-else class="text-red-700 dark:text-red-300">
+                                        ❌ Test failed: {{ testResult.error }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Appearance Card -->
                 <div class="card">
                     <div class="card-header">
@@ -104,8 +379,10 @@ onMounted(loadSettings);
                             <span class="capitalize font-medium text-gray-900 dark:text-gray-100">{{ entityStore.status }}</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-500 dark:text-gray-400">LLM Driver</span>
-                            <span class="font-medium text-gray-900 dark:text-gray-100">Ollama</span>
+                            <span class="text-gray-500 dark:text-gray-400">Active LLM</span>
+                            <span class="font-medium text-gray-900 dark:text-gray-100">
+                                {{ llmConfigurations.find(c => c.is_default)?.name || 'None configured' }}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -181,6 +458,299 @@ onMounted(loadSettings);
                         </p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Configuration Modal -->
+    <div v-if="showAddModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Add LLM Configuration</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <!-- Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                    <input
+                        v-model="newConfig.name"
+                        type="text"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        placeholder="e.g., NVIDIA Kimi"
+                    />
+                </div>
+
+                <!-- Driver -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Driver</label>
+                    <select
+                        v-model="newConfig.driver"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                    >
+                        <option v-for="(info, driver) in llmDrivers" :key="driver" :value="driver">
+                            {{ info.name }} - {{ info.description }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Model -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
+                    <input
+                        v-model="newConfig.model"
+                        type="text"
+                        list="popular-models"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        :placeholder="selectedDriverInfo.popular_models?.[0] || 'model-name'"
+                    />
+                    <datalist id="popular-models">
+                        <option v-for="model in selectedDriverInfo.popular_models" :key="model" :value="model" />
+                    </datalist>
+                    <p v-if="selectedDriverInfo.notes" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {{ selectedDriverInfo.notes }}
+                    </p>
+                </div>
+
+                <!-- API Key -->
+                <div v-if="selectedDriverInfo.requires_api_key">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
+                    <input
+                        v-model="newConfig.api_key"
+                        type="password"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        placeholder="sk-..."
+                    />
+                </div>
+
+                <!-- Base URL -->
+                <div v-if="selectedDriverInfo.requires_base_url">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL</label>
+                    <input
+                        v-model="newConfig.base_url"
+                        type="url"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        :placeholder="selectedDriverInfo.default_base_url || 'https://...'"
+                    />
+                </div>
+
+                <!-- Priority -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority (0-100)</label>
+                    <input
+                        v-model.number="newConfig.priority"
+                        type="number"
+                        min="0"
+                        max="100"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                    />
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Higher priority = tried first for fallback</p>
+                </div>
+
+                <!-- Options -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Temperature</label>
+                        <input
+                            v-model.number="newConfig.options.temperature"
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="2"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Tokens</label>
+                        <input
+                            v-model.number="newConfig.options.max_tokens"
+                            type="number"
+                            min="1"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Top P</label>
+                        <input
+                            v-model.number="newConfig.options.top_p"
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="1"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        />
+                    </div>
+                </div>
+
+                <!-- Checkboxes -->
+                <div class="flex gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input v-model="newConfig.is_active" type="checkbox" class="w-4 h-4 text-entity-600 rounded focus:ring-entity-500" />
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Active</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input v-model="newConfig.is_default" type="checkbox" class="w-4 h-4 text-entity-600 rounded focus:ring-entity-500" />
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Set as default</span>
+                    </label>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <button
+                    @click="showAddModal = false; resetNewConfig()"
+                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    @click="createConfiguration"
+                    class="px-4 py-2 bg-entity-600 text-white rounded-lg hover:bg-entity-700 transition-colors"
+                >
+                    Create
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Configuration Modal -->
+    <div v-if="showEditModal && editingConfig" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit LLM Configuration</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <!-- Name -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                    <input
+                        v-model="editingConfig.name"
+                        type="text"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                    />
+                </div>
+
+                <!-- Driver -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Driver</label>
+                    <select
+                        v-model="editingConfig.driver"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                    >
+                        <option v-for="(info, driver) in llmDrivers" :key="driver" :value="driver">
+                            {{ info.name }}
+                        </option>
+                    </select>
+                </div>
+
+                <!-- Model -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
+                    <input
+                        v-model="editingConfig.model"
+                        type="text"
+                        list="edit-popular-models"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                    />
+                    <datalist id="edit-popular-models">
+                        <option v-for="model in editDriverInfo.popular_models" :key="model" :value="model" />
+                    </datalist>
+                </div>
+
+                <!-- API Key -->
+                <div v-if="editDriverInfo.requires_api_key">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Key</label>
+                    <input
+                        v-model="editingConfig.api_key"
+                        type="password"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        placeholder="Leave empty to keep current"
+                    />
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {{ editingConfig.has_api_key ? 'API key is set. Leave empty to keep current.' : 'No API key set.' }}
+                    </p>
+                </div>
+
+                <!-- Base URL -->
+                <div v-if="editDriverInfo.requires_base_url">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL</label>
+                    <input
+                        v-model="editingConfig.base_url"
+                        type="url"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        :placeholder="editDriverInfo.default_base_url || 'https://...'"
+                    />
+                </div>
+
+                <!-- Priority -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority (0-100)</label>
+                    <input
+                        v-model.number="editingConfig.priority"
+                        type="number"
+                        min="0"
+                        max="100"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                    />
+                </div>
+
+                <!-- Options -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Temperature</label>
+                        <input
+                            v-model.number="editingConfig.options.temperature"
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="2"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Tokens</label>
+                        <input
+                            v-model.number="editingConfig.options.max_tokens"
+                            type="number"
+                            min="1"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Top P</label>
+                        <input
+                            v-model.number="editingConfig.options.top_p"
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="1"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-entity-500 focus:border-entity-500"
+                        />
+                    </div>
+                </div>
+
+                <!-- Checkboxes -->
+                <div class="flex gap-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input v-model="editingConfig.is_active" type="checkbox" class="w-4 h-4 text-entity-600 rounded focus:ring-entity-500" />
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Active</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input v-model="editingConfig.is_default" type="checkbox" class="w-4 h-4 text-entity-600 rounded focus:ring-entity-500" />
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Set as default</span>
+                    </label>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <button
+                    @click="showEditModal = false; editingConfig = null"
+                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    @click="updateConfiguration"
+                    class="px-4 py-2 bg-entity-600 text-white rounded-lg hover:bg-entity-700 transition-colors"
+                >
+                    Save Changes
+                </button>
             </div>
         </div>
     </div>

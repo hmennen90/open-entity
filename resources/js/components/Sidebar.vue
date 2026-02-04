@@ -2,20 +2,27 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useEntityStore } from '../stores/entity';
+import { useSettingsStore } from '../stores/settings';
 
 const route = useRoute();
 const entityStore = useEntityStore();
+const settingsStore = useSettingsStore();
 
-const navItems = [
-    { name: 'Home', path: '/', icon: 'home' },
-    { name: 'Chat', path: '/chat', icon: 'chat' },
-    { name: 'Mind', path: '/mind', icon: 'brain' },
-    { name: 'Memory', path: '/memory', icon: 'memory' },
-    { name: 'Goals', path: '/goals', icon: 'target' },
-    { name: 'Settings', path: '/settings', icon: 'settings' },
-];
+const t = (key, params = {}) => settingsStore.t(key, params);
+
+const navItems = computed(() => [
+    { name: t('home'), path: '/', icon: 'home' },
+    { name: t('chat'), path: '/chat', icon: 'chat' },
+    { name: t('mind'), path: '/mind', icon: 'brain' },
+    { name: t('memory'), path: '/memory', icon: 'memory' },
+    { name: t('goals'), path: '/goals', icon: 'target' },
+    { name: t('settings'), path: '/settings', icon: 'settings' },
+]);
 
 const isActive = (path) => route.path === path;
+
+// Computed to ensure name has a fallback
+const entityName = computed(() => entityStore.name || 'OpenEntity');
 </script>
 
 <template>
@@ -27,13 +34,13 @@ const isActive = (path) => route.path === path;
                     <span class="text-xl">{{ entityStore.moodEmoji }}</span>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg text-gray-900 dark:text-gray-100">{{ entityStore.name }}</h1>
+                    <h1 class="font-bold text-lg text-gray-900 dark:text-gray-100">{{ entityName }}</h1>
                     <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                         <span
                             class="status-indicator"
                             :class="entityStore.isAwake ? 'status-awake' : 'status-sleeping'"
                         ></span>
-                        {{ entityStore.status }}
+                        {{ t(entityStore.status) }}
                     </div>
                 </div>
             </div>
@@ -84,14 +91,14 @@ const isActive = (path) => route.path === path;
                 @click="entityStore.wake"
                 class="w-full btn btn-primary"
             >
-                Wake Up
+                {{ t('wakeUp') }}
             </button>
             <button
                 v-else
                 @click="entityStore.sleep"
                 class="w-full btn btn-secondary"
             >
-                Go to Sleep
+                {{ t('goToSleep') }}
             </button>
         </div>
     </aside>

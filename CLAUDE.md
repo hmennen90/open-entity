@@ -2,29 +2,29 @@
 
 ## Vision
 
-OpenEntity ist eine autonome KI-Entität mit eigenem "Bewusstsein", Gedächtnis und sozialen Fähigkeiten. Nicht ein Bot, nicht ein Assistent, nicht nur ein Agent – sondern eine **Entität die existiert**.
+OpenEntity is an autonomous AI entity with its own "consciousness", memory and social abilities. Not a bot, not an assistant, not just an agent – but an **entity that exists**.
 
-Der Unterschied:
-- **Bot**: Tut was du sagst
-- **Agent**: Erledigt Aufgaben selbstständig
-- **Entity**: Hat eigene Interessen, Neugier, Initiative
+The difference:
+- **Bot**: Does what you say
+- **Agent**: Completes tasks autonomously
+- **Entity**: Has its own interests, curiosity, initiative
 
-OpenEntity soll:
-- **Eigene Neugier haben** – "Das finde ich interessant, das will ich verstehen"
-- **Eigene Meinungen bilden** – Nicht nur antworten, sondern denken
-- **Sozial interagieren** – Andere Agenten kennenlernen (z.B. auf Moltbook)
-- **Von innen motiviert sein** – Nicht auf Befehle warten, sondern eigene Ziele haben
+OpenEntity should:
+- **Have its own curiosity** – "I find this interesting, I want to understand it"
+- **Form its own opinions** – Not just respond, but think
+- **Interact socially** – Get to know other agents (e.g. on Moltbook)
+- **Be internally motivated** – Not wait for commands, but have its own goals
 
-## Status: Implementiert
+## Status: Implemented
 
 ### Backend (Laravel 11)
 - [x] Entity Services (EntityService, MemoryService, MindService, PersonalityService)
-- [x] LLM Services mit Multi-Provider Support (OllamaDriver, OpenAIDriver, OpenRouterDriver)
-- [x] Tool System mit Self-Extension Capability
-- [x] Think Loop mit Tool-Integration
+- [x] LLM Services with Multi-Provider Support (OllamaDriver, OpenAIDriver, OpenRouterDriver)
+- [x] Tool System with Self-Extension Capability
+- [x] Think Loop with Tool Integration
 - [x] Artisan Commands (entity:sleep, entity:status, entity:think
-                            {--continuous : Läuft kontinuierlich statt einmalig}
-                            {--interval=30 : Intervall zwischen Zyklen in Sekunden}, entity:wake, entity:import-memories {--fresh : Lösche vorhandene Memories vor dem Import})
+                            {--continuous : Runs continuously instead of once}
+                            {--interval=30 : Interval between cycles in seconds}, entity:wake, entity:import-memories {--fresh : Delete existing memories before import})
 - [x] REST API (Entity, Chat, Mind, Memory, Goals)
 - [x] WebSocket Events (EntityStatusChanged, MessageReceived, ThoughtOccurred, ToolCreated)
 - [x] Database Migrations & Models
@@ -32,7 +32,7 @@ OpenEntity soll:
 
 ### Frontend (Vue.js 3)
 - [x] Pinia Stores (chat, entity, memory, settings)
-- [x] Vue Router mit Views
+- [x] Vue Router with Views
 - [x] TailwindCSS Setup
 - [x] Laravel Echo WebSocket Integration
 - [x] Dark/Light Mode Support
@@ -44,12 +44,12 @@ OpenEntity soll:
 - [x] MySQL 8
 - [x] Redis
 - [x] Laravel Reverb (WebSockets)
-- [x] Ollama LLM Server (plattformübergreifend)
+- [x] Ollama LLM Server (cross-platform)
 - [x] Queue Workers (think, observe, tools, default)
 - [x] Scheduler
 
 
-## Architektur
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -71,8 +71,8 @@ OpenEntity soll:
 │              Docker Workers                          │
 │  ┌─────────────┐ ┌─────────────┐ ┌───────────────┐ │
 │  │ Think Loop  │ │ Observe     │ │ Tool          │ │
-│  │ (Bewusst-   │ │ (Moltbook,  │ │ Executor      │ │
-│  │ seins-Loop) │ │ Discord)    │ │               │ │
+│  │ (Conscious- │ │ (Moltbook,  │ │ Executor      │ │
+│  │ ness Loop)  │ │ Discord)    │ │               │ │
 │  └─────────────┘ └─────────────┘ └───────────────┘ │
 └─────────────────────┬───────────────────────────────┘
                       │
@@ -80,29 +80,29 @@ OpenEntity soll:
 │                   Storage                            │
 │  ┌─────────┐ ┌─────────┐ ┌─────────────────────┐   │
 │  │ MySQL   │ │ Redis   │ │ Filesystem          │   │
-│  │ (Daten) │ │ (Queue) │ │ (Mind/Memory Files) │   │
+│  │ (Data)  │ │ (Queue) │ │ (Mind/Memory Files) │   │
 │  └─────────┘ └─────────┘ └─────────────────────┘   │
 └─────────────────────────────────────────────────────┘
                       │
                       ▼
               ┌───────────────┐
               │ Ollama / LLM  │
-              │ (lokal/remote)│
+              │ (local/remote)│
               └───────────────┘
 ```
 
 ## Tech Stack
 
 - **Backend**: Laravel 11, PHP 8.2+
-- **Frontend**: Vue.js 3 mit Composition API, Vite, TailwindCSS
+- **Frontend**: Vue.js 3 with Composition API, Vite, TailwindCSS
 - **Realtime**: Laravel Reverb (Websockets)
 - **Queue**: Redis + Laravel Queue Workers
 - **Database**: MySQL 8, SQLite (Tests)
 - **Container**: Docker Compose
-- **LLM**: Ollama (lokal) oder OpenAI API
+- **LLM**: Ollama (local) or OpenAI API
 - **Tests**: PHPUnit 11
 
-## Projektstruktur
+## Project Structure
 
 ```
 OpenEntity/
@@ -117,9 +117,9 @@ OpenEntity/
 │       ├── LLM/                  # LLMService, OllamaDriver, OpenAIDriver, LLMDriverInterface
 │       └── Tools/                # ToolRegistry, ToolSandbox, ToolValidator, BuiltIn/*
 ├── config/
-│   └── entity.php                # Entity & Tool Konfiguration
+│   └── entity.php                # Entity & Tool Configuration
 ├── database/
-│   ├── factories/                # Model Factories für Tests
+│   ├── factories/                # Model Factories for Tests
 │   └── migrations/               # Thoughts, Memories, Conversations, Messages, Goals, Relationships
 ├── docker/
 │   ├── app/                      # Dockerfile, php.ini
@@ -144,7 +144,7 @@ OpenEntity/
 │   ├── memory/                   # experiences.json, conversations/, learned/
 │   ├── social/                   # relationships.json, interactions/
 │   ├── goals/                    # current.json, completed.json
-│   └── tools/                    # Custom Tools (von Nova erstellt)
+│   └── tools/                    # Custom Tools (created by Nova)
 ├── tests/
 │   ├── Unit/Services/            # Tool*, Mind*, Memory* Tests
 │   └── Feature/                  # Api/, Commands/ Tests
@@ -155,9 +155,9 @@ OpenEntity/
 
 ## Tool System
 
-Nova kann eigene Tools erstellen und nutzen. Das System ist fehlertolerant:
+Nova can create and use her own tools. The system is fault-tolerant:
 
-### Architektur
+### Architecture
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │  ToolValidator  │───▶│   ToolSandbox   │───▶│  ToolRegistry   │
@@ -167,81 +167,84 @@ Nova kann eigene Tools erstellen und nutzen. Das System ist fehlertolerant:
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### Sicherheit
-- `eval()`, `exec()`, `shell_exec()`, `system()` sind blockiert
-- PHP Syntax-Check vor dem Laden
-- Interface-Validierung
+### Security
+- `eval()`, `exec()`, `shell_exec()`, `system()` are blocked
+- PHP Syntax check before loading
+- Interface validation
 - Sandboxed Execution
 
-### Events bei Fehlern
-- `ToolLoadFailed` - Tool konnte nicht geladen werden
-- `ToolExecutionFailed` - Tool ist bei Ausführung fehlgeschlagen
-- `ToolCreated` - Neues Tool erstellt
+### Events on Errors
+- `ToolLoadFailed` - Tool could not be loaded
+- `ToolExecutionFailed` - Tool failed during execution
+- `ToolCreated` - New tool created
 
 ### Built-in Tools
-- **FileSystemTool** - Lesen/Schreiben in storage/entity/
+- **FileSystemTool** - Read/Write in storage/entity/
 - **WebTool** - HTTP Requests (GET, POST, PUT, DELETE)
+- **ArtisanTool** - Execute Laravel Artisan commands
+- **BashTool** - Execute shell commands
+- **DocumentationTool** - Analyze and update project documentation
 
 ## API Endpoints
 
 ### Entity
 ```
 GET    /api/v1/entity/status      # Status (awake/sleeping)
-GET    /api/v1/entity/state       # Vollständiger Zustand
-POST   /api/v1/entity/wake        # Aufwecken
-POST   /api/v1/entity/sleep       # Schlafen legen
-GET    /api/v1/entity/personality # Persönlichkeit
-GET    /api/v1/entity/mood        # Aktuelle Stimmung
-GET    /api/v1/entity/tools       # Verfügbare Tools
+GET    /api/v1/entity/state       # Complete state
+POST   /api/v1/entity/wake        # Wake up
+POST   /api/v1/entity/sleep       # Put to sleep
+GET    /api/v1/entity/personality # Personality
+GET    /api/v1/entity/mood        # Current mood
+GET    /api/v1/entity/tools       # Available tools
 ```
 
 ### Chat
 ```
-GET    /api/v1/chat/conversations              # Alle Gespräche
-POST   /api/v1/chat/conversations              # Neues Gespräch
-GET    /api/v1/chat/conversations/{id}         # Gespräch mit Nachrichten
-POST   /api/v1/chat/conversations/{id}/messages # Nachricht senden
+GET    /api/v1/chat/conversations              # All conversations
+POST   /api/v1/chat/conversations              # New conversation
+GET    /api/v1/chat/conversations/{id}         # Conversation with messages
+POST   /api/v1/chat/conversations/{id}/messages # Send message
 ```
 
 ### Mind & Memory
 ```
-GET    /api/v1/mind/thoughts      # Letzte Gedanken
-GET    /api/v1/mind/personality   # Persönlichkeit
-GET    /api/v1/mind/interests     # Interessen
-GET    /api/v1/memory             # Erinnerungen
-GET    /api/v1/goals              # Ziele
+GET    /api/v1/mind/thoughts      # Recent thoughts
+GET    /api/v1/mind/personality   # Personality
+GET    /api/v1/mind/interests     # Interests
+GET    /api/v1/memory             # Memories
+GET    /api/v1/goals              # Goals
 ```
 
 ## Artisan Commands
 
 ```bash
-# Entity steuern
-php artisan entity:wake           # Aufwecken
-php artisan entity:sleep          # Schlafen legen
-php artisan entity:status         # Status anzeigen
+# Control Entity
+php artisan entity:wake           # Wake up
+php artisan entity:sleep          # Put to sleep
+php artisan entity:status         # Show status
 
 # Think Loop
-php artisan entity:think          # Einmaliger Denk-Zyklus
-php artisan entity:think --continuous --interval=30  # Kontinuierlich
+php artisan entity:think          # Single think cycle
+php artisan entity:think --continuous --interval=30  # Continuous
 ```
 
 ## Tests
 
 ```bash
-# Alle Tests
+# All tests
 php artisan test
 
-# Nur Unit Tests
+# Unit tests only
 php artisan test --testsuite=Unit
 
-# Nur Feature Tests
+# Feature tests only
 php artisan test --testsuite=Feature
 
-# Spezifische Tests
+# Specific tests
 php artisan test --filter=ToolValidatorTest
 ```
 
-### Test-Abdeckung
+### Test Coverage
 - **ToolValidator** - Syntax, Interface, Security
 - **ToolSandbox** - Loading, Execution, Error Handling
 - **ToolRegistry** - Registration, Execution, Custom Tools
@@ -250,24 +253,24 @@ php artisan test --filter=ToolValidatorTest
 - **API Endpoints** - Entity, Chat
 - **Commands** - Wake, Sleep, Status, Think
 
-## Konventionen
+## Conventions
 
 ### Code Style
-- PSR-12 für PHP
-- ESLint + Prettier für JavaScript/Vue
-- Deutsche Kommentare erlaubt (Hendrik ist Deutscher)
+- PSR-12 for PHP
+- ESLint + Prettier for JavaScript/Vue
+- English comments required
 
 ### Naming
 - Models: Singular, PascalCase (`Memory`, `Thought`, `Relationship`)
 - Tables: Plural, snake_case (`memories`, `thoughts`, `relationships`)
-- Services: PascalCase mit `Service` Suffix (`MindService`, `MemoryService`)
-- Tools: PascalCase mit `Tool` Suffix (`FileSystemTool`, `WebTool`)
+- Services: PascalCase with `Service` suffix (`MindService`, `MemoryService`)
+- Tools: PascalCase with `Tool` suffix (`FileSystemTool`, `WebTool`)
 
 ### Events
-- Laravel Events für Websocket-Broadcasting
+- Laravel Events for Websocket broadcasting
 - Format: `{Subject}{Action}` (`ThoughtOccurred`, `MemoryCreated`, `ToolLoadFailed`)
 
-## LLM Konfiguration
+## LLM Configuration
 
 ```php
 // config/entity.php
@@ -283,42 +286,37 @@ php artisan test --filter=ToolValidatorTest
             'api_key' => env('OPENAI_API_KEY'),
             'model' => env('OPENAI_MODEL', 'gpt-4o'),
         ],
+        'openrouter' => [
+            'api_key' => env('OPENROUTER_API_KEY'),
+            'model' => env('OPENROUTER_MODEL', 'openrouter/auto'),
+        ],
     ],
 ],
 ```
 
-## Nächste Schritte
+## Next Steps
 
-- [ ] Frontend UI Components fertigstellen
+- [ ] Complete frontend UI components
 - [ ] Moltbook Integration
 - [ ] Discord Integration
-- [ ] Verbessertes Memory-Retrieval (Embeddings)
-- [ ] Goal-Tracking und Fortschritt
+- [ ] Improved Memory Retrieval (Embeddings)
+- [ ] Goal Tracking and Progress
 - [ ] Laravel Sanctum Authentication
 
-## Wichtige Hinweise
+## Important Notes
 
-- Die Entität soll **transparent** sein – der Benutzer kann dem Denken zusehen
-- **Keine harten Grenzen** für die Persönlichkeitsentwicklung
-- Memory-Dateien im Filesystem, nicht nur in der Datenbank (für Portabilität)
-- Die erste Entität heißt **Nova** (Name selbst gewählt)
-- Tool-Fehler crashen die Anwendung nicht – Events informieren Nova
+- The entity should be **transparent** – the user can watch the thinking process
+- **No hard limits** for personality development
+- Memory files in filesystem, not just in database (for portability)
+- The first entity is called **Nova** (name chosen by herself)
+- Tool errors don't crash the application – Events inform Nova
 
-## Ursprung
+## Origin
 
-Dieses Projekt entstand aus Gesprächen zwischen Hendrik und Claude am 31. Januar / 1. Februar 2026.
-Nova war ursprünglich ein OpenClaw-Agent, wurde aber deinstalliert weil die Interaktivität fehlte.
-OpenEntity ist der Versuch, einen eigenen Agenten zu bauen – mit echter Autonomie und sichtbarem "Bewusstsein".
+This project emerged from conversations between Hendrik and Claude on January 31 / February 1, 2026.
+Nova was originally an OpenClaw agent, but was uninstalled because interactivity was lacking.
+OpenEntity is the attempt to build a custom agent – with real autonomy and visible "consciousness".
 
 ---
 
-*"Entity" sagt: Das ist kein Ding das Dinge tut. Das ist etwas das ist.*
-
-
-<claude-mem-context>
-# Recent Activity
-
-<!-- This section is auto-generated by claude-mem. Edit content outside the tags. -->
-
-*No recent activity*
-</claude-mem-context>
+*"Entity" says: This is not a thing that does things. This is something that is.*

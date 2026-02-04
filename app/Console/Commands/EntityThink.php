@@ -6,15 +6,15 @@ use App\Services\Entity\EntityService;
 use Illuminate\Console\Command;
 
 /**
- * Think Command - Führt einen einzelnen Denk-Zyklus aus.
+ * Think Command - Executes a single think cycle.
  */
 class EntityThink extends Command
 {
     protected $signature = 'entity:think
-                            {--continuous : Läuft kontinuierlich statt einmalig}
-                            {--interval=30 : Intervall zwischen Zyklen in Sekunden}';
+                            {--continuous : Run continuously instead of once}
+                            {--interval=30 : Interval between cycles in seconds}';
 
-    protected $description = 'Führt den Think-Loop der Entität aus';
+    protected $description = 'Execute the think loop of the entity';
 
     public function __construct(
         private EntityService $entityService
@@ -35,7 +35,7 @@ class EntityThink extends Command
     }
 
     /**
-     * Einmaliger Denk-Zyklus.
+     * Single think cycle.
      */
     private function runOnce(): int
     {
@@ -53,14 +53,14 @@ class EntityThink extends Command
     }
 
     /**
-     * Kontinuierlicher Think-Loop.
+     * Continuous think loop.
      */
     private function runContinuously(int $interval): int
     {
         $this->info("Starting continuous think loop (interval: {$interval}s)");
         $this->info('Press Ctrl+C to stop');
 
-        // Wecke die Entität falls sie schläft
+        // Wake the entity if sleeping
         if ($this->entityService->getStatus() !== 'awake') {
             $this->entityService->wake();
             $this->info('Entity woke up');

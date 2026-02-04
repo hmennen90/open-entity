@@ -11,11 +11,11 @@ class Conversation extends Model
     use HasFactory;
 
     protected $fillable = [
-        'participant', // Name des Gesprächspartners
+        'participant', // Name of the conversation partner
         'participant_type', // 'human', 'entity', 'system'
         'channel', // 'web', 'moltbook', 'discord'
-        'summary', // Zusammenfassung des Gesprächs
-        'sentiment', // Gesamtstimmung des Gesprächs
+        'summary', // Summary of the conversation
+        'sentiment', // Overall sentiment of the conversation
         'ended_at',
     ];
 
@@ -25,7 +25,7 @@ class Conversation extends Model
     ];
 
     /**
-     * Nachrichten in diesem Gespräch.
+     * Messages in this conversation.
      */
     public function messages(): HasMany
     {

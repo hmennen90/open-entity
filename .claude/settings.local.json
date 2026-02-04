@@ -11,7 +11,16 @@
       "Bash(docker compose:*)",
       "Bash(./setup.sh:*)",
       "Bash(curl:*)",
-      "Bash(/usr/bin/curl:*)"
+      "Bash(/usr/bin/curl:*)",
+      "Bash(tail:*)",
+      "Bash(if ! grep -q \"NVIDIA_MODEL\" /Users/hendrikmennen/PhpstormProjects/OpenEntity/.env)",
+      "Bash(then)",
+      "Bash(fi)",
+      "Bash(npm run build:*)",
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(done)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -20 {}')"
     ]
   }
 }
