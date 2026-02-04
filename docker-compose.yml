@@ -12,11 +12,23 @@ services:
     volumes:
       - ./:/var/www
       - ./docker/app/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    environment:
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_USERNAME=${DB_USERNAME:-openentity}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
     networks:
       - openentity
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "vendor/autoload.php"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
 
   # Nginx Webserver
   nginx:
@@ -31,8 +43,10 @@ services:
     networks:
       - openentity
     depends_on:
-      - app
-      - reverb
+      app:
+        condition: service_healthy
+      reverb:
+        condition: service_started
 
   # MySQL Database
   mysql:
@@ -91,8 +105,8 @@ services:
     networks:
       - openentity
     depends_on:
-      - mysql
-      - redis
+      app:
+        condition: service_healthy
 
   # Queue Worker - Think (Consciousness Loop)
   worker-think:
@@ -110,9 +124,10 @@ services:
     networks:
       - openentity
     depends_on:
-      - mysql
-      - redis
-      - ollama
+      app:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
 
   # Queue Worker - Observe (Moltbook, Discord monitoring)
   worker-observe:
@@ -130,8 +145,8 @@ services:
     networks:
       - openentity
     depends_on:
-      - mysql
-      - redis
+      app:
+        condition: service_healthy
 
   # Queue Worker - Tools (File operations, Web, etc.)
   worker-tools:
@@ -149,8 +164,8 @@ services:
     networks:
       - openentity
     depends_on:
-      - mysql
-      - redis
+      app:
+        condition: service_healthy
 
   # Queue Worker - Default
   worker-default:
@@ -168,8 +183,8 @@ services:
     networks:
       - openentity
     depends_on:
-      - mysql
-      - redis
+      app:
+        condition: service_healthy
 
   # Ollama LLM Server
   #
@@ -234,8 +249,8 @@ services:
     networks:
       - openentity
     depends_on:
-      - mysql
-      - redis
+      app:
+        condition: service_healthy
 
 networks:
   openentity:
