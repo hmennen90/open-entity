@@ -194,8 +194,8 @@ class MemoryServiceTest extends TestCase
     /** @test */
     public function it_handles_memory_decay(): void
     {
-        // Erstelle alte Memory
-        $oldMemory = Memory::create([
+        // Erstelle alte Memory mit Factory (respektiert created_at)
+        $oldMemory = Memory::factory()->create([
             'type' => 'experience',
             'content' => 'Old memory',
             'importance' => 0.5,
@@ -211,8 +211,12 @@ class MemoryServiceTest extends TestCase
 
         $recentFirst = $this->memoryService->getRecent(10);
 
-        // Neueste zuerst - prüfe anhand des Inhalts
-        $this->assertEquals('New memory', $recentFirst->first()->content);
+        // Neueste zuerst - prüfe dass neue Memory vor alter kommt
+        $this->assertCount(2, $recentFirst);
+        $this->assertTrue(
+            $recentFirst->first()->created_at >= $recentFirst->last()->created_at,
+            'Recent memories should be ordered by created_at descending'
+        );
     }
 
     /** @test */
