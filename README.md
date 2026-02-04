@@ -34,7 +34,7 @@ OpenEntity is not a bot. Not an assistant. Not just an agent.
 | Queue | Redis + Laravel Queue Workers |
 | Database | MySQL 8 |
 | Container | Docker Compose |
-| LLM | Ollama (local), OpenAI API, or OpenRouter |
+| LLM | Ollama (local, auto-configured) |
 | Tests | PHPUnit 11 (66 Tests) |
 
 ## Quick Start
@@ -51,52 +51,66 @@ OpenEntity is not a bot. Not an assistant. Not just an agent.
 git clone https://github.com/hendrikmennen/open-entity.git
 cd open-entity
 
-# Copy environment
-cp .env.example .env
+# Start with setup script (recommended)
+./setup.sh --start        # Linux/macOS
+setup.bat start           # Windows CMD
+powershell -ExecutionPolicy Bypass -File setup.ps1 -Start  # Windows PowerShell
 
-# Start Docker (with Ollama)
+# Or manually
 docker compose up -d
-
-# Wait until all containers are running
-docker compose ps
-
-# Install dependencies
-docker compose exec app composer install
-docker compose exec app npm install
-
-# Laravel Setup
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan migrate
-
-# Load LLM model (one-time)
-docker compose exec ollama ollama pull qwen2.5-coder:14b
-
-# Build frontend
-docker compose exec app npm run build
-
-# Wake up entity
-docker compose exec app php artisan entity:wake
 ```
 
-Nova is now accessible at **http://localhost:8080**.
+**That's it!** The first start automatically:
+- Installs Composer and NPM dependencies
+- Creates `.env` from `.env.example`
+- Generates Laravel application key
+- Runs database migrations
+- Detects GPU/VRAM and pulls appropriate LLM model
+- Seeds default LLM configuration
+
+Nova is accessible at **http://localhost:8080** once all containers are healthy.
+
+> **Note:** First startup takes several minutes (dependency installation, model download). Check progress with `docker logs -f openentity-app` and `docker logs -f openentity-ollama`.
 
 ### GPU Acceleration
 
-#### NVIDIA GPU (Linux/Windows)
-```bash
-# Remove standard override for GPU support
-rm docker-compose.override.yml
-docker compose up -d
-```
+The setup scripts automatically detect your GPU:
 
-#### Apple Silicon (Mac)
-For best performance, install Ollama natively:
+| GPU | Detection | Docker Compose |
+|-----|-----------|----------------|
+| NVIDIA | `nvidia-smi` | `docker-compose.gpu.yml` overlay |
+| AMD | `rocm-smi` | Standard (ROCm in Ollama) |
+| Apple Silicon | `sysctl hw.optional.arm64` | Unified Memory |
+| None | - | CPU mode |
+
+#### Model Selection by VRAM
+
+| VRAM | Model |
+|------|-------|
+| < 6 GB | `qwen2.5:7b-instruct-q4_K_M` |
+| 6-10 GB | `qwen2.5:7b-instruct-q5_K_M` |
+| 10-16 GB | `qwen2.5:14b-instruct-q5_K_M` |
+| 16-24 GB | `qwen2.5:32b-instruct-q4_K_M` |
+| 24-40 GB | `qwen2.5:32b-instruct-q5_K_M` |
+| > 40 GB | `qwen2.5:72b-instruct-q5_K_M` |
+
+#### Manual GPU Setup
+
 ```bash
+# NVIDIA GPU (Linux/Windows with WSL2)
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+
+# Apple Silicon (native Ollama for best performance)
 brew install ollama
 ollama serve
+# Set in .env: OLLAMA_BASE_URL=http://host.docker.internal:11434
+```
 
-# Change in .env:
-OLLAMA_BASE_URL=http://host.docker.internal:11434
+#### Skip Model Pull
+
+If you already have models or want to pull manually:
+```bash
+OLLAMA_SKIP_PULL=true docker compose up -d
 ```
 
 ## Architecture
@@ -120,6 +134,24 @@ OLLAMA_BASE_URL=http://host.docker.internal:11434
               │ Ollama / LLM  │
               └───────────────┘
 ```
+
+### Docker Services
+
+| Container | Purpose | Port |
+|-----------|---------|------|
+| `openentity-nginx` | Web server | 8080 |
+| `openentity-app` | PHP-FPM application | - |
+| `openentity-mysql` | Database | 3306 |
+| `openentity-redis` | Cache & Queue | 6379 |
+| `openentity-reverb` | WebSocket server | 8085 |
+| `openentity-ollama` | Local LLM | 11434 |
+| `openentity-worker-think` | Consciousness loop | - |
+| `openentity-worker-observe` | Social monitoring | - |
+| `openentity-worker-tools` | Tool execution | - |
+| `openentity-worker-default` | General tasks | - |
+| `openentity-scheduler` | Periodic tasks | - |
+
+All services use health checks for proper startup ordering. Data is persisted in `./docker/data/`.
 
 ## Controlling the Entity
 
@@ -186,11 +218,12 @@ For detailed developer documentation see [CLAUDE.md](CLAUDE.md).
 | `ENTITY_NAME` | Name of the entity | Nova |
 | `ENTITY_LLM_DRIVER` | LLM backend | ollama |
 | `OLLAMA_BASE_URL` | Ollama API URL | http://ollama:11434 |
-| `OLLAMA_MODEL` | LLM model | qwen2.5-coder:14b |
-| `OPENAI_API_KEY` | OpenAI API Key | - |
-| `OPENAI_MODEL` | OpenAI model | gpt-4o |
-| `OPENROUTER_API_KEY` | OpenRouter API Key | - |
-| `OPENROUTER_MODEL` | OpenRouter model | anthropic/claude-3.5-sonnet |
+| `OLLAMA_MODEL` | LLM model (auto-detected if empty) | - |
+| `OLLAMA_SKIP_PULL` | Skip automatic model download | false |
+| `EMBEDDING_OLLAMA_MODEL` | Embedding model | nomic-embed-text |
+| `APP_PORT` | Web interface port | 8080 |
+| `DB_PORT` | MySQL port | 3306 |
+| `REDIS_PORT` | Redis port | 6379 |
 
 ## License
 

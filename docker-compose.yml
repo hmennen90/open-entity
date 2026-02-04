@@ -25,10 +25,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "test", "-f", "vendor/autoload.php"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 300s
 
   # Nginx Webserver
   nginx:

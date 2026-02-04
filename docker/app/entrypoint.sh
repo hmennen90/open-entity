@@ -45,7 +45,19 @@ else
     while [ ! -f "vendor/autoload.php" ]; do
         sleep 2
     done
-    echo "✅ Dependencies ready"
+    echo "✅ Vendor ready"
+
+    echo "⏳ Waiting for .env file..."
+    while [ ! -f ".env" ]; do
+        sleep 2
+    done
+    echo "✅ Environment ready"
+
+    echo "⏳ Waiting for application key..."
+    while ! grep -q "^APP_KEY=base64:" .env 2>/dev/null; do
+        sleep 2
+    done
+    echo "✅ Application key ready"
 fi
 
 # Storage-Verzeichnisse sicherstellen (für alle Container)
