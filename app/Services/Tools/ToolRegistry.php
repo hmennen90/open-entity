@@ -5,6 +5,7 @@ namespace App\Services\Tools;
 use App\Services\Tools\Contracts\ToolInterface;
 use App\Services\Tools\BuiltIn\FileSystemTool;
 use App\Services\Tools\BuiltIn\WebTool;
+use App\Services\Tools\BuiltIn\SearchTool;
 use App\Services\Tools\BuiltIn\DocumentationTool;
 use App\Services\Tools\BuiltIn\ArtisanTool;
 use App\Services\Tools\BuiltIn\BashTool;
@@ -273,6 +274,13 @@ class ToolRegistry
         if (config('entity.tools.web.enabled', true)) {
             $this->register(new WebTool(
                 config('entity.tools.web.timeout', 30)
+            ));
+        }
+
+        // Search Tool
+        if (config('entity.tools.search.enabled', true)) {
+            $this->register(new SearchTool(
+                config('entity.tools.search.timeout', 15)
             ));
         }
 
