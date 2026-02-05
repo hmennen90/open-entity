@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/hmennen90/open-entity/compare/v1.0.1...v1.0.2) (2026-02-05)
+
+
+### Bug Fixes
+
+* Resolved Reverb Startup ([a0e4f29](https://github.com/hmennen90/open-entity/commit/a0e4f291dd1f5d7a94680853e6934a825a3fbcdf))
+
 ## [1.0.1](https://github.com/hmennen90/open-entity/compare/v1.0.0...v1.0.1) (2026-02-05)
 
 
