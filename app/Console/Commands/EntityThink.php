@@ -39,16 +39,24 @@ class EntityThink extends Command
      */
     private function runOnce(): int
     {
-        $this->info('Starting single think cycle...');
+        $status = $this->entityService->getStatus();
+        $isDreaming = $status !== 'awake';
+
+        if ($isDreaming) {
+            $this->info('Entity is sleeping - starting dream cycle...');
+        } else {
+            $this->info('Starting single think cycle...');
+        }
 
         $thought = $this->entityService->think();
 
         if ($thought) {
-            $this->info("Thought created: [{$thought->type}] {$thought->content}");
+            $prefix = $isDreaming ? 'Dream' : 'Thought';
+            $this->info("{$prefix} created: [{$thought->type}] {$thought->content}");
             return self::SUCCESS;
         }
 
-        $this->warn('No thought generated (entity might be sleeping)');
+        $this->warn('No thought generated');
         return self::SUCCESS;
     }
 

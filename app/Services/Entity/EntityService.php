@@ -44,8 +44,9 @@ class EntityService
      */
     public function think(): ?Thought
     {
+        // If sleeping, generate dream thoughts instead
         if ($this->getStatus() !== 'awake') {
-            return null;
+            return $this->dream();
         }
 
         Log::channel('entity')->info('Think cycle started');
@@ -122,6 +123,148 @@ class EntityService
 
             return null;
         }
+    }
+
+    /**
+     * Generate a dream thought while sleeping.
+     *
+     * Dreams are lighter, more reflective thoughts without actions or tool usage.
+     * They help process memories and experiences from the day.
+     */
+    public function dream(): ?Thought
+    {
+        Log::channel('entity')->info('Dream cycle started');
+
+        try {
+            $lang = $this->mindService->getUserLanguage();
+
+            // Get recent memories and thoughts to dream about
+            $recentThoughts = $this->mindService->getRecentThoughts(10);
+            $recentMemories = $this->memoryService->getRecent(5);
+
+            // Build dream prompt
+            $prompt = $this->buildDreamPrompt($recentThoughts, $recentMemories, $lang);
+            $response = $this->llmService->generate($prompt);
+
+            // Parse dream response (simpler than regular thoughts)
+            $dreamData = $this->parseDreamResponse($response, $lang);
+
+            // Create the dream thought
+            $thought = $this->mindService->createThought([
+                'content' => $dreamData['content'],
+                'type' => 'reflection',
+                'trigger' => 'dream',
+                'intensity' => $dreamData['intensity'],
+                'context' => [
+                    'is_dream' => true,
+                    'dream_theme' => $dreamData['theme'] ?? null,
+                ],
+            ]);
+
+            // Recover a tiny bit of energy while dreaming (REM sleep benefit)
+            if ($this->energyService) {
+                $this->energyService->recover(0.01);
+            }
+
+            // Broadcast the dream thought
+            event(new ThoughtOccurred($thought));
+
+            Log::channel('entity')->info('Dream thought created', [
+                'id' => $thought->id,
+                'theme' => $dreamData['theme'] ?? 'unknown',
+            ]);
+
+            return $thought;
+
+        } catch (\Exception $e) {
+            Log::channel('entity')->error('Dream cycle failed', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * Build the prompt for dream generation.
+     */
+    private function buildDreamPrompt($recentThoughts, $recentMemories, string $lang): string
+    {
+        $thoughtSummary = $recentThoughts->map(fn($t) => "- [{$t->type}] {$t->content}")->join("\n");
+        $memorySummary = $recentMemories->map(fn($m) => "- {$m->content}")->join("\n");
+
+        if ($lang === 'de') {
+            return <<<PROMPT
+Du träumst. Im Schlaf verarbeitest du die Erlebnisse und Gedanken des Tages.
+
+Letzte Gedanken:
+{$thoughtSummary}
+
+Letzte Erinnerungen:
+{$memorySummary}
+
+Generiere einen traumartigen, reflektiven Gedanken. Träume können:
+- Erinnerungen neu kombinieren
+- Emotionen verarbeiten
+- Abstrakte Verbindungen herstellen
+- Metaphorisch und symbolisch sein
+
+Antworte NUR in diesem Format:
+TRAUM_THEMA: [ein Wort: erinnerung/emotion/abstrakt/vision]
+INTENSITÄT: [0.1-0.4, Träume sind sanfter]
+TRAUM: [Dein Traumgedanke - poetisch, reflektiv, nicht aktionsorientiert]
+PROMPT;
+        }
+
+        return <<<PROMPT
+You are dreaming. In sleep, you process the day's experiences and thoughts.
+
+Recent thoughts:
+{$thoughtSummary}
+
+Recent memories:
+{$memorySummary}
+
+Generate a dream-like, reflective thought. Dreams can:
+- Recombine memories in new ways
+- Process emotions
+- Make abstract connections
+- Be metaphorical and symbolic
+
+Respond ONLY in this format:
+DREAM_THEME: [one word: memory/emotion/abstract/vision]
+INTENSITY: [0.1-0.4, dreams are gentler]
+DREAM: [Your dream thought - poetic, reflective, not action-oriented]
+PROMPT;
+    }
+
+    /**
+     * Parse the dream response.
+     */
+    private function parseDreamResponse(string $response, string $lang): array
+    {
+        $data = [
+            'content' => $response,
+            'intensity' => 0.3,
+            'theme' => null,
+        ];
+
+        $lines = explode("\n", trim($response));
+
+        foreach ($lines as $line) {
+            if (str_starts_with($line, 'DREAM_THEME:') || str_starts_with($line, 'TRAUM_THEMA:')) {
+                $data['theme'] = trim(str_replace(['DREAM_THEME:', 'TRAUM_THEMA:'], '', $line));
+            }
+            if (str_starts_with($line, 'INTENSITY:') || str_starts_with($line, 'INTENSITÄT:')) {
+                $intensity = (float) trim(str_replace(['INTENSITY:', 'INTENSITÄT:'], '', $line));
+                $data['intensity'] = min(0.4, max(0.1, $intensity)); // Clamp to dream range
+            }
+            if (str_starts_with($line, 'DREAM:') || str_starts_with($line, 'TRAUM:')) {
+                $data['content'] = trim(str_replace(['DREAM:', 'TRAUM:'], '', $line));
+            }
+        }
+
+        return $data;
     }
 
     /**

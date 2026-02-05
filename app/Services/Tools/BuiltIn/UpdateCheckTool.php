@@ -2,6 +2,7 @@
 
 namespace App\Services\Tools\BuiltIn;
 
+use App\Events\UpdateAvailable;
 use App\Services\Tools\Contracts\ToolInterface;
 use Illuminate\Support\Facades\Http;
 
@@ -49,6 +50,10 @@ class UpdateCheckTool implements ToolInterface
                     'type' => 'boolean',
                     'description' => 'If true, also check for pre-release versions (default: false)',
                 ],
+                'notify_user' => [
+                    'type' => 'boolean',
+                    'description' => 'If true, broadcast a notification to the user when an update is available (default: true)',
+                ],
             ],
             'required' => [],
         ];
@@ -67,6 +72,7 @@ class UpdateCheckTool implements ToolInterface
     {
         $includeChangelog = $params['include_changelog'] ?? true;
         $includePrerelease = $params['include_prerelease'] ?? false;
+        $notifyUser = $params['notify_user'] ?? true;
 
         try {
             $currentVersion = $this->getCurrentVersion();
@@ -88,6 +94,11 @@ class UpdateCheckTool implements ToolInterface
             $latestVersion = ltrim($latestRelease['tag_name'], 'v');
             $updateAvailable = version_compare($latestVersion, $currentVersion, '>');
 
+            $changelog = null;
+            if ($includeChangelog && !empty($latestRelease['body'])) {
+                $changelog = $this->formatChangelog($latestRelease['body']);
+            }
+
             $result = [
                 'current_version' => $currentVersion,
                 'latest_version' => $latestVersion,
@@ -99,9 +110,16 @@ class UpdateCheckTool implements ToolInterface
 
             if ($updateAvailable) {
                 $result['message'] = "A new version ({$latestVersion}) is available! You are running {$currentVersion}.";
+                $result['changelog'] = $changelog;
 
-                if ($includeChangelog && !empty($latestRelease['body'])) {
-                    $result['changelog'] = $this->formatChangelog($latestRelease['body']);
+                // Notify the user via WebSocket if requested
+                if ($notifyUser) {
+                    event(new UpdateAvailable(
+                        currentVersion: $currentVersion,
+                        latestVersion: $latestVersion,
+                        releaseUrl: $latestRelease['html_url'],
+                        changelog: $changelog
+                    ));
                 }
             } else {
                 $result['message'] = "You are running the latest version ({$currentVersion}).";

@@ -17,6 +17,7 @@ export const useEntityStore = defineStore('entity', () => {
     const error = ref(null);
     const notifications = ref([]);
     const pendingQuestion = ref(null);
+    const updateInfo = ref(null);
 
     // Getters
     const isAwake = computed(() => status.value === 'awake');
@@ -118,10 +119,12 @@ export const useEntityStore = defineStore('entity', () => {
             createdAt: new Date().toISOString(),
         });
 
-        // Auto-dismiss after 10 seconds
-        setTimeout(() => {
-            dismissNotification(id);
-        }, 10000);
+        // Auto-dismiss after 10 seconds (unless persistent)
+        if (!notification.persistent) {
+            setTimeout(() => {
+                dismissNotification(id);
+            }, 10000);
+        }
     }
 
     function dismissNotification(id) {
@@ -145,6 +148,26 @@ export const useEntityStore = defineStore('entity', () => {
         pendingQuestion.value = null;
     }
 
+    function handleUpdateAvailable(data) {
+        updateInfo.value = {
+            currentVersion: data.current_version,
+            latestVersion: data.latest_version,
+            releaseUrl: data.release_url,
+            changelog: data.changelog,
+        };
+        addNotification({
+            type: 'update',
+            title: 'Update Available',
+            message: `Version ${data.latest_version} is available (current: ${data.current_version})`,
+            releaseUrl: data.release_url,
+            persistent: true, // Don't auto-dismiss update notifications
+        });
+    }
+
+    function dismissUpdate() {
+        updateInfo.value = null;
+    }
+
     function subscribeToUpdates() {
         if (!window.Echo) return;
 
@@ -160,10 +183,13 @@ export const useEntityStore = defineStore('entity', () => {
                 addThought(data);
             });
 
-        // Notification Updates (entity questions)
+        // Notification Updates (entity questions and updates)
         window.Echo.channel('entity.notifications')
             .listen('.entity.question', (data) => {
                 handleEntityQuestion(data);
+            })
+            .listen('.update.available', (data) => {
+                handleUpdateAvailable(data);
             });
     }
 
@@ -182,6 +208,7 @@ export const useEntityStore = defineStore('entity', () => {
         error,
         notifications,
         pendingQuestion,
+        updateInfo,
 
         // Getters
         isAwake,
@@ -197,6 +224,8 @@ export const useEntityStore = defineStore('entity', () => {
         dismissNotification,
         handleEntityQuestion,
         clearPendingQuestion,
+        handleUpdateAvailable,
+        dismissUpdate,
         subscribeToUpdates,
     };
 });

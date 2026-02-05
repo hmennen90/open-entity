@@ -57,12 +57,13 @@ class EntityCommandsTest extends TestCase
     }
 
     /** @test */
-    public function entity_think_command_warns_when_sleeping(): void
+    public function entity_think_command_dreams_when_sleeping(): void
     {
         Cache::put('entity:status', 'sleeping', 86400);
 
         $this->artisan('entity:think')
             ->expectsOutputToContain('sleeping')
+            ->expectsOutputToContain('dream')
             ->assertExitCode(0);
     }
 
