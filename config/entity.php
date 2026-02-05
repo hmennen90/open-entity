@@ -14,8 +14,11 @@ return [
     // Name of the entity
     'name' => env('ENTITY_NAME', 'OpenEntity'),
 
-    // Current version (for update checks)
-    'version' => env('ENTITY_VERSION', '1.0.2'),
+    // Current version (read from VERSION file, updated by semantic-release)
+    'version' => env('ENTITY_VERSION', trim(file_get_contents(base_path('VERSION')))),
+
+    // Language for thoughts, memories, and system prompts (de/en)
+    'language' => env('ENTITY_LANGUAGE', 'de'),
 
     // Think loop interval in seconds
     'think_interval' => (int) env('ENTITY_THINK_INTERVAL', 30),
@@ -228,6 +231,9 @@ return [
             'enabled' => true,
             'timeout' => 10,
             'repository' => env('ENTITY_UPDATE_REPOSITORY', 'hmennen90/open-entity'),
+        ],
+        'user_preferences' => [
+            'enabled' => true,
         ],
     ],
 

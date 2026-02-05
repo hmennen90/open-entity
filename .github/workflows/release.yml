@@ -46,7 +46,7 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies
-        run: npm install semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github
+        run: npm install semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github @semantic-release/exec
 
       - name: Verify all tests passed
         run: |

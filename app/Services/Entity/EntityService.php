@@ -373,20 +373,20 @@ class EntityService
     }
 
     /**
-     * Get current contact from USER.md.
+     * Get current contact from user preferences.
      */
     private function getCurrentContact(): ?string
     {
-        $userMdPath = storage_path('app/public/workspace/USER.md');
+        $preferencesPath = config('entity.storage_path') . '/user/preferences.json';
 
-        if (file_exists($userMdPath)) {
-            $content = file_get_contents($userMdPath);
+        if (file_exists($preferencesPath)) {
+            $preferences = json_decode(file_get_contents($preferencesPath), true);
 
-            if (preg_match('/\*\*What to call them:\*\*\s*(.+)/m', $content, $matches)) {
-                $name = trim($matches[1]);
-                if (!empty($name)) {
-                    return $name;
-                }
+            if (!empty($preferences['call_them'])) {
+                return $preferences['call_them'];
+            }
+            if (!empty($preferences['name'])) {
+                return $preferences['name'];
             }
         }
 

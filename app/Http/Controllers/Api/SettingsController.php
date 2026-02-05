@@ -7,15 +7,29 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * SettingsController - Manages user settings.
+ * SettingsController - Manages user settings via API.
+ *
+ * Settings are stored in storage/entity/user/preferences.json
  */
 class SettingsController extends Controller
 {
-    private string $userMdPath;
+    private string $preferencesPath;
 
     public function __construct()
     {
-        $this->userMdPath = storage_path('app/public/workspace/USER.md');
+        $this->preferencesPath = config('entity.storage_path') . '/user/preferences.json';
+    }
+
+    /**
+     * Get all user preferences.
+     */
+    public function getPreferences(): JsonResponse
+    {
+        $preferences = $this->loadPreferences();
+
+        return response()->json([
+            'preferences' => $preferences,
+        ]);
     }
 
     /**
@@ -23,10 +37,10 @@ class SettingsController extends Controller
      */
     public function getLanguage(): JsonResponse
     {
-        $language = $this->readLanguageFromUserMd();
+        $preferences = $this->loadPreferences();
 
         return response()->json([
-            'language' => $language ?? 'de',
+            'language' => $preferences['language'] ?? config('entity.language', 'de'),
         ]);
     }
 
@@ -40,7 +54,11 @@ class SettingsController extends Controller
         ]);
 
         $language = $request->input('language');
-        $this->updateLanguageInUserMd($language);
+        $preferences = $this->loadPreferences();
+        $preferences['language'] = $language;
+        $preferences['updated_at'] = now()->toIso8601String();
+
+        $this->savePreferences($preferences);
 
         return response()->json([
             'success' => true,
@@ -49,75 +67,69 @@ class SettingsController extends Controller
     }
 
     /**
-     * Read language preference from USER.md.
+     * Update a preference field.
      */
-    private function readLanguageFromUserMd(): ?string
+    public function updatePreference(Request $request): JsonResponse
     {
-        if (!file_exists($this->userMdPath)) {
-            return null;
+        $request->validate([
+            'field' => 'required|string|max:50',
+            'value' => 'required|string|max:1000',
+        ]);
+
+        $field = strtolower($request->input('field'));
+        $value = $request->input('value');
+
+        // Validate language field
+        if ($field === 'language' && !in_array($value, ['de', 'en'])) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Language must be "de" or "en"',
+            ], 422);
         }
 
-        $content = file_get_contents($this->userMdPath);
+        $preferences = $this->loadPreferences();
+        $preferences[$field] = $value;
+        $preferences['updated_at'] = now()->toIso8601String();
 
-        if (preg_match('/\*\*Language:\*\*\s*(\w+)/i', $content, $matches)) {
-            return strtolower(trim($matches[1]));
-        }
+        $this->savePreferences($preferences);
 
-        return null;
+        return response()->json([
+            'success' => true,
+            'field' => $field,
+            'value' => $value,
+        ]);
     }
 
     /**
-     * Update or add language field in USER.md.
+     * Load preferences from JSON file.
      */
-    private function updateLanguageInUserMd(string $language): void
+    private function loadPreferences(): array
     {
-        // Ensure directory exists
-        $dir = dirname($this->userMdPath);
+        if (!file_exists($this->preferencesPath)) {
+            return [
+                'created_at' => now()->toIso8601String(),
+            ];
+        }
+
+        $content = file_get_contents($this->preferencesPath);
+        $preferences = json_decode($content, true);
+
+        return is_array($preferences) ? $preferences : [];
+    }
+
+    /**
+     * Save preferences to JSON file.
+     */
+    private function savePreferences(array $preferences): void
+    {
+        $dir = dirname($this->preferencesPath);
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
 
-        // Read existing content or create default
-        if (file_exists($this->userMdPath)) {
-            $content = file_get_contents($this->userMdPath);
-
-            // Check if Language field exists
-            if (preg_match('/\*\*Language:\*\*\s*\w*/i', $content)) {
-                // Update existing field
-                $content = preg_replace(
-                    '/(\*\*Language:\*\*\s*)\w*/i',
-                    '$1' . $language,
-                    $content
-                );
-            } else {
-                // Add Language field after the header section
-                $content = preg_replace(
-                    '/(\*\*What to call them:\*\*[^\n]*\n)/i',
-                    "$1**Language:** {$language}\n",
-                    $content
-                );
-
-                // If that didn't work, append at the end
-                if (!str_contains($content, '**Language:**')) {
-                    $content .= "\n**Language:** {$language}\n";
-                }
-            }
-        } else {
-            // Create new USER.md with default structure
-            $content = <<<MD
-# User Profile
-
-**What to call them:** User
-**Language:** {$language}
-
-## About
-(Add information about the user here)
-
-## Preferences
-(Add user preferences here)
-MD;
-        }
-
-        file_put_contents($this->userMdPath, $content);
+        file_put_contents(
+            $this->preferencesPath,
+            json_encode($preferences, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+        );
     }
 }

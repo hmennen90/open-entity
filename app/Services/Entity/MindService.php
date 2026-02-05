@@ -242,61 +242,58 @@ CONTEXT;
     }
 
     /**
-     * Get the user's preferred language from USER.md
+     * Get the preferred language from user preferences or config.
      */
     public function getUserLanguage(): string
     {
-        $userMdPath = storage_path('app/public/workspace/USER.md');
-
-        if (file_exists($userMdPath)) {
-            $content = file_get_contents($userMdPath);
-            if (preg_match('/\*\*Language:\*\*\s*(\w+)/m', $content, $matches)) {
-                return strtolower(trim($matches[1]));
+        // 1. Check user preferences first (highest priority)
+        $preferencesPath = config('entity.storage_path') . '/user/preferences.json';
+        if (file_exists($preferencesPath)) {
+            $preferences = json_decode(file_get_contents($preferencesPath), true);
+            if (!empty($preferences['language'])) {
+                return strtolower($preferences['language']);
             }
         }
 
-        return 'en'; // Default to English
+        // 2. Fallback to config
+        return strtolower(config('entity.language', 'de'));
     }
 
     /**
-     * Load the user context from USER.md
+     * Load the user context from preferences.json
      */
     private function loadUserContext(): string
     {
-        $userMdPath = storage_path('app/public/workspace/USER.md');
+        $preferencesPath = config('entity.storage_path') . '/user/preferences.json';
         $lang = $this->getUserLanguage();
 
-        if (!file_exists($userMdPath)) {
+        if (!file_exists($preferencesPath)) {
             return $lang === 'de'
                 ? "Ich kenne meinen Gesprächspartner noch nicht."
                 : "I don't know my conversation partner yet.";
         }
 
-        $content = file_get_contents($userMdPath);
+        $preferences = json_decode(file_get_contents($preferencesPath), true);
 
-        // Parse the most important information
-        $name = $lang === 'de' ? 'Unbekannt' : 'Unknown';
-        $callThem = $lang === 'de' ? 'du' : 'you';
-        $notes = '';
-        $context = '';
+        if (empty($preferences) || empty($preferences['name'])) {
+            return $lang === 'de'
+                ? "Ich kenne meinen Gesprächspartner noch nicht."
+                : "I don't know my conversation partner yet.";
+        }
 
-        if (preg_match('/\*\*Name:\*\*\s*(.+)/m', $content, $matches)) {
-            $name = trim($matches[1]);
-        }
-        if (preg_match('/\*\*What to call them:\*\*\s*(.+)/m', $content, $matches)) {
-            $callThem = trim($matches[1]);
-        }
-        if (preg_match('/\*\*Notes:\*\*\s*(.+)/m', $content, $matches)) {
-            $notes = trim($matches[1]);
-        }
-        if (preg_match('/## Context\s*\n(.+?)(?:\n---|\z)/s', $content, $matches)) {
-            $context = trim($matches[1]);
-        }
+        $name = $preferences['name'] ?? ($lang === 'de' ? 'Unbekannt' : 'Unknown');
+        $callThem = $preferences['call_them'] ?? ($lang === 'de' ? 'du' : 'you');
+        $notes = $preferences['notes'] ?? '';
+        $context = $preferences['context'] ?? '';
+        $interests = $preferences['interests'] ?? '';
 
         if ($lang === 'de') {
             $result = "Mein Mensch heißt {$name}. Ich nenne ihn {$callThem}.\n";
             if ($notes) {
                 $result .= "Was ich über {$callThem} weiß: {$notes}\n";
+            }
+            if ($interests) {
+                $result .= "Interessen: {$interests}\n";
             }
             if ($context) {
                 $result .= "Aktuelle Projekte: {$context}\n";
@@ -305,6 +302,9 @@ CONTEXT;
             $result = "My human is named {$name}. I call them {$callThem}.\n";
             if ($notes) {
                 $result .= "What I know about {$callThem}: {$notes}\n";
+            }
+            if ($interests) {
+                $result .= "Interests: {$interests}\n";
             }
             if ($context) {
                 $result .= "Current projects: {$context}\n";
