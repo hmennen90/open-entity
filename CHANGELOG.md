@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/hmennen90/open-entity/compare/v1.0.2...v1.0.3) (2026-02-05)
+
+
+### Bug Fixes
+
+* Fixed Front-end Building ([9c5c6b7](https://github.com/hmennen90/open-entity/commit/9c5c6b788bc340609d5f00d848e254a1abbe1f83))
+
 ## [1.0.2](https://github.com/hmennen90/open-entity/compare/v1.0.1...v1.0.2) (2026-02-05)
 
 
