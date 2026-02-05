@@ -86,7 +86,6 @@ jobs:
           DB_USERNAME: root
           DB_PASSWORD: password
           REDIS_HOST: 127.0.0.1
-          CACHE_DRIVER: redis
           QUEUE_CONNECTION: sync
         run: php artisan test
 
