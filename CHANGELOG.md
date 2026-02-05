@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/hmennen90/open-entity/compare/v1.3.1...v1.4.0) (2026-02-05)
+
+
+### Features
+
+* **tools:** Add GoalTool with duplicate detection and improve question routing ([3ccead5](https://github.com/hmennen90/open-entity/commit/3ccead513d029ea7a072a87a74e2e307e6658f9b))
+
 ## [1.3.1](https://github.com/hmennen90/open-entity/compare/v1.3.0...v1.3.1) (2026-02-05)
 
 
