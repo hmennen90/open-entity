@@ -12,6 +12,7 @@ use App\Services\Tools\BuiltIn\BashTool;
 use App\Services\Tools\BuiltIn\PersonalityTool;
 use App\Services\Tools\BuiltIn\UpdateCheckTool;
 use App\Services\Tools\BuiltIn\UserPreferencesTool;
+use App\Services\Tools\BuiltIn\GoalTool;
 use App\Events\ToolCreated;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
@@ -321,6 +322,11 @@ class ToolRegistry
         // User Preferences Tool - allows the entity to remember user preferences
         if (config('entity.tools.user_preferences.enabled', true)) {
             $this->register(new UserPreferencesTool());
+        }
+
+        // Goal Tool - allows the entity to manage its own goals
+        if (config('entity.tools.goal.enabled', true)) {
+            $this->register(new GoalTool());
         }
     }
 

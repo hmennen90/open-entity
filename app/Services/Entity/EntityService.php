@@ -11,6 +11,7 @@ use App\Models\Conversation;
 use App\Events\ThoughtOccurred;
 use App\Events\EntityStatusChanged;
 use App\Events\EntityQuestionAsked;
+use App\Events\MessageReceived;
 use App\Models\Message;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -100,8 +101,8 @@ class EntityService
             // 11. Broadcast to frontend
             event(new ThoughtOccurred($thought));
 
-            // 12. If this is a curiosity/question, notify the user
-            if ($thought->type === 'curiosity' && $thought->intensity >= 0.6) {
+            // 12. If this thought is a question to the user, show it in chat
+            if ($this->isQuestionForUser($thought)) {
                 $this->askQuestion($thought);
             }
 
@@ -673,18 +674,21 @@ class EntityService
         }
 
         // Create a message from the entity
-        Message::create([
+        $message = Message::create([
             'conversation_id' => $conversation->id,
             'role' => 'entity',
             'content' => $question,
             'metadata' => [
                 'thought_id' => $thought->id,
-                'thought_type' => 'curiosity',
+                'thought_type' => $thought->type,
                 'entity_initiated' => true,
             ],
         ]);
 
-        // Broadcast the question notification
+        // Broadcast the message to chat (so it appears in the chat window)
+        event(new MessageReceived($message));
+
+        // Broadcast the question notification (for additional notification)
         event(new EntityQuestionAsked($question, $thought));
 
         Log::channel('entity')->info('Entity asked a question', [
@@ -692,6 +696,46 @@ class EntityService
             'thought_id' => $thought->id,
             'conversation_id' => $conversation->id,
         ]);
+    }
+
+    /**
+     * Determine if a thought is a question directed at the user.
+     *
+     * This detects:
+     * 1. Curiosity type thoughts with sufficient intensity
+     * 2. Any thought containing question patterns directed at the user
+     */
+    private function isQuestionForUser(Thought $thought): bool
+    {
+        $content = strtolower($thought->content);
+
+        // Original behavior: curiosity type with high intensity
+        if ($thought->type === 'curiosity' && $thought->intensity >= 0.6) {
+            return true;
+        }
+
+        // Check for question marks with user-directed phrases
+        if (str_contains($thought->content, '?')) {
+            $userDirectedPhrases = [
+                // German
+                'was denkst du', 'was meinst du', 'kannst du', 'könntest du',
+                'weißt du', 'hast du', 'möchtest du', 'willst du',
+                'was hältst du', 'wie findest du', 'deine meinung',
+                'würdest du', 'siehst du', 'verstehst du',
+                // English
+                'what do you think', 'do you think', 'can you', 'could you',
+                'do you know', 'have you', 'would you', 'will you',
+                'what is your', 'your opinion', 'how do you',
+            ];
+
+            foreach ($userDirectedPhrases as $phrase) {
+                if (str_contains($content, $phrase)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

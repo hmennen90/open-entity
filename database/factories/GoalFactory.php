@@ -14,11 +14,18 @@ class GoalFactory extends Factory
         return [
             'title' => fake()->sentence(3),
             'description' => fake()->paragraph(),
-            'type' => fake()->randomElement(['short_term', 'long_term', 'ongoing']),
+            'motivation' => fake()->sentence(),
+            'type' => fake()->randomElement(['curiosity', 'social', 'learning', 'creative', 'self-improvement']),
             'status' => fake()->randomElement(['active', 'paused', 'completed', 'abandoned']),
             'progress' => fake()->numberBetween(0, 100),
-            'priority' => fake()->numberBetween(1, 5),
-            'context' => [],
+            'priority' => fake()->randomFloat(2, 0, 1),
+            'progress_notes' => [
+                [
+                    'date' => now()->toIso8601String(),
+                    'note' => 'Goal created',
+                ],
+            ],
+            'origin' => fake()->randomElement(['self', 'suggested', 'derived']),
         ];
     }
 
@@ -34,27 +41,35 @@ class GoalFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'status' => 'completed',
             'progress' => 100,
+            'completed_at' => now(),
         ]);
     }
 
-    public function shortTerm(): static
+    public function learning(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => 'short_term',
+            'type' => 'learning',
         ]);
     }
 
-    public function longTerm(): static
+    public function curiosity(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => 'long_term',
+            'type' => 'curiosity',
         ]);
     }
 
     public function highPriority(): static
     {
         return $this->state(fn (array $attributes) => [
-            'priority' => 1,
+            'priority' => 0.9,
+        ]);
+    }
+
+    public function lowPriority(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'priority' => 0.1,
         ]);
     }
 }

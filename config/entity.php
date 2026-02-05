@@ -235,6 +235,10 @@ return [
         'user_preferences' => [
             'enabled' => true,
         ],
+        'goal' => [
+            'enabled' => true,
+            'similarity_threshold' => 60, // 0-100, goals with higher similarity are considered duplicates
+        ],
     ],
 
 ];
