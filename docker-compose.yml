@@ -107,8 +107,28 @@ services:
       app:
         condition: service_healthy
 
-  # Queue Worker - Think (Consciousness Loop)
-  worker-think:
+  # Think Loop Worker (Consciousness Loop with adaptive intervals)
+  worker-think-loop:
+    build:
+      context: ./docker/app
+    container_name: openentity-think-loop
+    restart: unless-stopped
+    working_dir: /var/www
+    environment:
+      - CONTAINER_ROLE=worker
+    command: php artisan entity:think --continuous --adaptive
+    volumes:
+      - ./:/var/www
+    networks:
+      - openentity
+    depends_on:
+      app:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+
+  # Queue Worker - Think Queue (for tool execution etc.)
+  worker-think-queue:
     build:
       context: ./docker/app
     container_name: openentity-worker-think

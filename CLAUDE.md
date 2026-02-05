@@ -47,7 +47,8 @@ OpenEntity should:
 - [x] Redis
 - [x] Laravel Reverb (WebSockets)
 - [x] Ollama LLM Server (cross-platform)
-- [x] Queue Workers (think, observe, tools, default)
+- [x] Think Loop Worker (adaptive consciousness loop)
+- [x] Queue Workers (think-queue, observe, tools, default)
 - [x] Scheduler
 
 
