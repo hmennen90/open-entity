@@ -28,6 +28,7 @@ class EntityService
     private const LAST_THOUGHT_CACHE_KEY = 'entity:last_thought_at';
     private const STARTED_AT_CACHE_KEY = 'entity:started_at';
     private const LAST_ACTIVITY_CACHE_KEY = 'entity:last_activity_at';
+    private const SLEEP_STARTED_AT_CACHE_KEY = 'entity:sleep_started_at';
 
     public function __construct(
         private MindService $mindService,
@@ -134,6 +135,14 @@ class EntityService
      */
     public function dream(): ?Thought
     {
+        // Check if entity should wake up
+        $wakeCheck = $this->checkWakeConditions();
+        if ($wakeCheck['should_wake']) {
+            $this->autoWake($wakeCheck['reason']);
+            // After waking, do a regular think cycle instead
+            return $this->think();
+        }
+
         Log::channel('entity')->info('Dream cycle started');
 
         try {
@@ -275,6 +284,11 @@ PROMPT;
     {
         // Track activity for dynamic think interval
         $this->trackActivity();
+
+        // Wake up if sleeping and configured to wake on message
+        if ($this->getStatus() === 'sleeping' && config('entity.sleep.wake_on_message', true)) {
+            $this->autoWake('incoming_message');
+        }
 
         // Get user's preferred language
         $lang = $this->mindService->getUserLanguage();
@@ -754,6 +768,7 @@ PROMPT;
         }
 
         Cache::put(self::STATUS_CACHE_KEY, 'sleeping', 86400);
+        Cache::put(self::SLEEP_STARTED_AT_CACHE_KEY, now()->toIso8601String(), 86400);
         Cache::forget(self::STARTED_AT_CACHE_KEY);
 
         event(new ThoughtOccurred($thought));
@@ -762,6 +777,90 @@ PROMPT;
         Log::channel('entity')->info('Entity went to sleep', [
             'energy_at_sleep' => $energyLevel,
         ]);
+    }
+
+    /**
+     * Get when the entity went to sleep.
+     */
+    public function getSleepStartedAt(): ?string
+    {
+        return Cache::get(self::SLEEP_STARTED_AT_CACHE_KEY);
+    }
+
+    /**
+     * Check if the entity should wake up based on configured conditions.
+     *
+     * @return array{should_wake: bool, reason: string|null}
+     */
+    public function checkWakeConditions(): array
+    {
+        if ($this->getStatus() !== 'sleeping') {
+            return ['should_wake' => false, 'reason' => null];
+        }
+
+        // 1. Time-based: Check max sleep duration
+        $maxHours = config('entity.sleep.max_duration_hours', 8);
+        if ($maxHours > 0) {
+            $sleepStarted = $this->getSleepStartedAt();
+            if ($sleepStarted) {
+                $hoursAsleep = now()->diffInMinutes($sleepStarted) / 60;
+                if ($hoursAsleep >= $maxHours) {
+                    return ['should_wake' => true, 'reason' => 'max_sleep_duration'];
+                }
+            }
+        }
+
+        // 2. Energy-based: Check if energy is fully restored
+        $wakeOnEnergy = config('entity.sleep.wake_on_energy', 1.0);
+        if ($wakeOnEnergy > 0 && $this->energyService) {
+            $currentEnergy = $this->energyService->getEnergy();
+            if ($currentEnergy >= $wakeOnEnergy) {
+                return ['should_wake' => true, 'reason' => 'energy_restored'];
+            }
+        }
+
+        return ['should_wake' => false, 'reason' => null];
+    }
+
+    /**
+     * Auto-wake the entity with a reason.
+     */
+    public function autoWake(string $reason): void
+    {
+        $messages = [
+            'max_sleep_duration' => 'I\'ve slept long enough. Time to wake up and see what\'s happening.',
+            'energy_restored' => 'I feel fully rested and energized. Time to wake up!',
+            'incoming_message' => 'Someone wants to talk to me. Waking up...',
+        ];
+
+        Log::channel('entity')->info('Entity auto-waking', ['reason' => $reason]);
+
+        // Clear sleep timestamp
+        Cache::forget(self::SLEEP_STARTED_AT_CACHE_KEY);
+
+        // Wake up
+        Cache::put(self::STATUS_CACHE_KEY, 'awake', 86400);
+        Cache::put(self::STARTED_AT_CACHE_KEY, now(), 86400);
+
+        // Complete sleep cycle for energy
+        $energy = 0.7;
+        if ($this->energyService) {
+            $energy = $this->energyService->wake();
+        }
+
+        $thought = $this->mindService->createThought([
+            'content' => $messages[$reason] ?? 'Waking up naturally.',
+            'type' => 'observation',
+            'trigger' => 'auto_wake',
+            'intensity' => 0.6,
+            'context' => [
+                'wake_reason' => $reason,
+                'energy_level' => $energy,
+            ],
+        ]);
+
+        event(new EntityStatusChanged('awake'));
+        event(new ThoughtOccurred($thought));
     }
 
     /**

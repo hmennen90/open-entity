@@ -32,6 +32,18 @@ return [
         'activity_timeout' => (int) env('ENTITY_ACTIVITY_TIMEOUT', 120),
     ],
 
+    // Sleep configuration
+    'sleep' => [
+        // Maximum sleep duration in hours (0 = unlimited)
+        'max_duration_hours' => (float) env('ENTITY_SLEEP_MAX_HOURS', 8),
+
+        // Wake up when energy reaches this level (0-1, 0 = disabled)
+        'wake_on_energy' => (float) env('ENTITY_WAKE_ON_ENERGY', 1.0),
+
+        // Wake up when receiving a chat message
+        'wake_on_message' => env('ENTITY_WAKE_ON_MESSAGE', true),
+    ],
+
     // Legacy support - deprecated, use think.idle_interval instead
     'think_interval' => (int) env('ENTITY_THINK_INTERVAL', 30),
 
