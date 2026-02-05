@@ -199,14 +199,27 @@ jobs:
       - name: Install Ollama natively
         run: |
           curl -fsSL https://ollama.ai/install.sh | sh
-          # Start Ollama listening on all interfaces (needed for Docker to reach it)
-          # Export so the subprocess inherits it
-          export OLLAMA_HOST=0.0.0.0
-          nohup ollama serve > /tmp/ollama.log 2>&1 &
+
+          # The install script may start a systemd service bound to localhost only
+          # Stop and disable it so we can control the binding
+          sudo systemctl stop ollama 2>/dev/null || true
+          sudo systemctl disable ollama 2>/dev/null || true
+          pkill ollama 2>/dev/null || true
+          sleep 2
+
+          # Start Ollama manually, bound to all interfaces for Docker access
+          # Use inline env var to ensure it's passed to the process
+          OLLAMA_HOST=0.0.0.0 nohup ollama serve > /tmp/ollama.log 2>&1 &
           sleep 5
-          # Verify Ollama is listening on all interfaces
-          ss -tlnp | grep 11434 || echo "Warning: Ollama not on expected port"
-          cat /tmp/ollama.log || true
+
+          # Verify Ollama is listening on 0.0.0.0
+          if ss -tlnp | grep -q "0.0.0.0:11434"; then
+            echo "✅ Ollama listening on all interfaces"
+          else
+            echo "⚠️ Ollama binding (checking anyway):"
+            ss -tlnp | grep 11434 || echo "Port 11434 not found"
+            cat /tmp/ollama.log || true
+          fi
 
       - name: Pull models
         run: |
