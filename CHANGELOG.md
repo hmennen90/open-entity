@@ -1,3 +1,15 @@
+## [1.0.1](https://github.com/hmennen90/open-entity/compare/v1.0.0...v1.0.1) (2026-02-05)
+
+
+### Bug Fixes
+
+* **ci:** use explicit COMPOSE_PROJECT_NAME for Docker image naming ([258cfe2](https://github.com/hmennen90/open-entity/commit/258cfe2877f54f4ef9011912539a268546caac2b))
+
+
+### Performance Improvements
+
+* **ci:** reuse Docker images across integration test jobs ([2c73682](https://github.com/hmennen90/open-entity/commit/2c7368272d173833194010c1ff5166679b87caea))
+
 # 1.0.0 (2026-02-05)
 
 
