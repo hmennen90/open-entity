@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/hmennen90/open-entity/compare/v1.4.0...v1.4.1) (2026-02-05)
+
+
+### Bug Fixes
+
+* **events:** Use ShouldBroadcastNow for immediate UI updates ([7572809](https://github.com/hmennen90/open-entity/commit/7572809d7c286eff161d95d5c7c1b92b898acc79))
+
 # [1.4.0](https://github.com/hmennen90/open-entity/compare/v1.3.1...v1.4.0) (2026-02-05)
 
 
