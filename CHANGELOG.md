@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/hmennen90/open-entity/compare/v1.2.0...v1.3.0) (2026-02-05)
+
+
+### Features
+
+* **config:** Add ENTITY_LANGUAGE config and UserPreferencesTool ([47401c3](https://github.com/hmennen90/open-entity/commit/47401c3c9677725d7f6f3eed4ea355b3bdd5780d))
+
 # [1.2.0](https://github.com/hmennen90/open-entity/compare/v1.1.0...v1.2.0) (2026-02-05)
 
 
