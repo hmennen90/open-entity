@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/hmennen90/open-entity/compare/v1.0.0...v1.0.1) (2026-02-05)
+
+
+### Bug Fixes
+
+* Resolved Problems with Windows Startup ([1ed954d](https://github.com/hmennen90/open-entity/commit/1ed954d604869ef16e2a1b1577348f6d7909ce4a))
+
 # 1.0.0 (2026-02-04)
 
 
