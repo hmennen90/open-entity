@@ -1,3 +1,16 @@
+# [1.6.0](https://github.com/hmennen90/open-entity/compare/v1.5.0...v1.6.0) (2026-02-05)
+
+
+### Bug Fixes
+
+* **docker:** Update native-ollama override with new worker names ([3ca0553](https://github.com/hmennen90/open-entity/commit/3ca0553b564aba3d0a311a8bd16fc3a676a6e8f5))
+
+
+### Features
+
+* **docker:** Add dedicated think-loop worker with adaptive intervals ([965bade](https://github.com/hmennen90/open-entity/commit/965bade00dffcbf063dca3cdceb7c09067adfc22))
+* **think:** Add adaptive think intervals based on activity ([12761b6](https://github.com/hmennen90/open-entity/commit/12761b65f954bcf86c1bd18e9c8ea23da02ee068))
+
 # [1.5.0](https://github.com/hmennen90/open-entity/compare/v1.4.1...v1.5.0) (2026-02-05)
 
 
