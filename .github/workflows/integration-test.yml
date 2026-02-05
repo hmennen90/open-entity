@@ -28,6 +28,15 @@ jobs:
           echo "OLLAMA_MODEL=tinyllama" >> .env
           echo "OLLAMA_SKIP_PULL=false" >> .env
 
+      - name: Prepare storage directories
+        run: |
+          # Create directories and set permissions for Docker container user (uid 1000)
+          mkdir -p storage/framework/{sessions,views,cache}
+          mkdir -p storage/logs
+          mkdir -p storage/entity/{mind,memory,social,goals,tools}
+          mkdir -p bootstrap/cache
+          chmod -R 777 storage bootstrap/cache
+
       - name: Build and start containers
         run: |
           docker compose up -d --build
@@ -192,6 +201,15 @@ jobs:
           echo "OLLAMA_PORT=11435" >> .env
 
           cat .env | grep -E "OLLAMA|COMPOSE"
+
+      - name: Prepare storage directories
+        run: |
+          # Create directories and set permissions for Docker container user (uid 1000)
+          mkdir -p storage/framework/{sessions,views,cache}
+          mkdir -p storage/logs
+          mkdir -p storage/entity/{mind,memory,social,goals,tools}
+          mkdir -p bootstrap/cache
+          chmod -R 777 storage bootstrap/cache
 
       - name: Start Docker containers (without Ollama)
         run: |

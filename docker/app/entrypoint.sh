@@ -12,10 +12,11 @@ if [ "$ROLE" = "app" ]; then
     # === APP CONTAINER: Installiert alles ===
 
     # Storage-Verzeichnisse erstellen (benötigt für Laravel Caching während composer install)
-    mkdir -p storage/framework/{sessions,views,cache}
-    mkdir -p storage/logs
-    mkdir -p storage/entity/{mind,memory,social,goals,tools}
-    mkdir -p bootstrap/cache
+    # Ignore errors - directories might already exist or permissions handled by volume mounts
+    mkdir -p storage/framework/{sessions,views,cache} 2>/dev/null || true
+    mkdir -p storage/logs 2>/dev/null || true
+    mkdir -p storage/entity/{mind,memory,social,goals,tools} 2>/dev/null || true
+    mkdir -p bootstrap/cache 2>/dev/null || true
 
     # .env erstellen BEVOR composer install (Laravel braucht Broadcast-Config)
     if [ ! -f ".env" ]; then
