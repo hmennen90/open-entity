@@ -34,7 +34,11 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  worker-think:
+  worker-think-loop:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  worker-think-queue:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
