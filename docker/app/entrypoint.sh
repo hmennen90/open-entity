@@ -11,10 +11,30 @@ ROLE="${CONTAINER_ROLE:-app}"
 if [ "$ROLE" = "app" ]; then
     # === APP CONTAINER: Installiert alles ===
 
+    # Storage-Verzeichnisse erstellen (benötigt für Laravel Caching während composer install)
+    mkdir -p storage/framework/{sessions,views,cache}
+    mkdir -p storage/logs
+    mkdir -p storage/entity/{mind,memory,social,goals,tools}
+    mkdir -p bootstrap/cache
+
+    # .env erstellen BEVOR composer install (Laravel braucht Broadcast-Config)
+    if [ ! -f ".env" ]; then
+        if [ -f ".env.example" ]; then
+            echo "📝 Creating .env from .env.example..."
+            cp .env.example .env
+        fi
+    fi
+
     # Composer-Dependencies installieren wenn vendor/ fehlt
     if [ ! -d "vendor" ] || [ ! -f "vendor/autoload.php" ]; then
         echo "📦 Installing Composer dependencies..."
         composer install --no-interaction --prefer-dist --optimize-autoloader
+    fi
+
+    # Application Key generieren wenn noch nicht vorhanden
+    if ! grep -q "^APP_KEY=base64:" .env 2>/dev/null; then
+        echo "🔑 Generating application key..."
+        php artisan key:generate --no-interaction
     fi
 
     # NPM-Dependencies installieren wenn node_modules/ fehlt
@@ -28,21 +48,6 @@ if [ "$ROLE" = "app" ]; then
         echo "🔨 Building frontend..."
         npm run build
     fi
-
-    # .env erstellen wenn nicht vorhanden
-    if [ ! -f ".env" ]; then
-        if [ -f ".env.example" ]; then
-            echo "📝 Creating .env from .env.example..."
-            cp .env.example .env
-            php artisan key:generate --no-interaction
-        fi
-    fi
-
-    # Storage-Verzeichnisse erstellen
-    mkdir -p storage/framework/{sessions,views,cache}
-    mkdir -p storage/logs
-    mkdir -p storage/entity/{mind,memory,social,goals,tools}
-    mkdir -p bootstrap/cache
 
 else
     # === WORKER CONTAINER: Wartet auf Dependencies ===
