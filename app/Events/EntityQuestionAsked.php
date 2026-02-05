@@ -5,7 +5,7 @@ namespace App\Events;
 use App\Models\Thought;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -13,9 +13,9 @@ use Illuminate\Queue\SerializesModels;
  * Event when the entity wants to ask a question.
  *
  * This triggers a notification to the user and optionally
- * creates a chat message.
+ * creates a chat message. Uses ShouldBroadcastNow for immediate delivery.
  */
-class EntityQuestionAsked implements ShouldBroadcast
+class EntityQuestionAsked implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

@@ -4,14 +4,17 @@ namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
  * Event wenn sich der Entity-Status ändert.
+ *
+ * Uses ShouldBroadcastNow to ensure immediate delivery
+ * (not queued) so UI updates instantly when entity sleeps/wakes.
  */
-class EntityStatusChanged implements ShouldBroadcast
+class EntityStatusChanged implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
