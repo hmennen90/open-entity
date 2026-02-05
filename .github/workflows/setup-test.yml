@@ -144,7 +144,7 @@ jobs:
   # Test setup.sh on macOS
   macos-setup:
     name: macOS Setup (${{ matrix.memory }}GB RAM)
-    runs-on: macos-13
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
