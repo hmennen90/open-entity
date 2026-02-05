@@ -23,6 +23,12 @@ if [ "$ROLE" = "app" ]; then
         npm install
     fi
 
+    # Frontend bauen wenn public/build/ fehlt
+    if [ ! -d "public/build" ] || [ ! -f "public/build/manifest.json" ]; then
+        echo "🔨 Building frontend..."
+        npm run build
+    fi
+
     # .env erstellen wenn nicht vorhanden
     if [ ! -f ".env" ]; then
         if [ -f ".env.example" ]; then
@@ -95,14 +101,13 @@ if [ -n "$DB_HOST" ]; then
     fi
 fi
 
-# Cache leeren und Front-End bauen bei erstem Start
+# Cache leeren bei erstem Start
 if [ ! -f "storage/.initialized" ]; then
     echo "🔧 Initial setup..."
     php artisan config:clear
     php artisan cache:clear
     php artisan view:clear
     touch storage/.initialized
-    npm run build
 fi
 
 # Übergebenen Command ausführen

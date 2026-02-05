@@ -111,6 +111,19 @@ ollama serve
 # Set in .env: OLLAMA_BASE_URL=http://host.docker.internal:11434
 ```
 
+#### Windows with Native Ollama
+
+If you have Ollama installed natively on Windows (via `winget install Ollama.Ollama` or the installer), you need to configure the URL so Docker containers can reach it:
+
+1. Make sure Ollama is running on your Windows host
+2. Update your `.env` file:
+   ```
+   OLLAMA_BASE_URL=http://host.docker.internal:11434
+   ```
+3. Start Docker containers: `docker compose up -d`
+
+> **Note:** `host.docker.internal` is a special DNS name that Docker Desktop provides to access the host machine from within containers.
+
 #### Skip Model Pull
 
 If you already have models or want to pull manually:
