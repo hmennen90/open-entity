@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/hmennen90/open-entity/compare/v1.0.2...v1.1.0) (2026-02-05)
+
+
+### Bug Fixes
+
+* **tests:** disable SearchTool in ToolRegistryTest setup ([4c77b87](https://github.com/hmennen90/open-entity/commit/4c77b87e327ef92f9172a9c8e1cabcc394d499f2))
+
+
+### Features
+
+* **tools:** add SearchTool for web searches via DuckDuckGo ([b921ba7](https://github.com/hmennen90/open-entity/commit/b921ba7794e4d95bf5b80096a23768aa61f88d06))
+
 ## [1.0.2](https://github.com/hmennen90/open-entity/compare/v1.0.1...v1.0.2) (2026-02-05)
 
 
