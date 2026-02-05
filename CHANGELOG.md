@@ -1,3 +1,18 @@
+# [1.5.0](https://github.com/hmennen90/open-entity/compare/v1.4.1...v1.5.0) (2026-02-05)
+
+
+### Bug Fixes
+
+* **ci:** Explicitly set CACHE_DRIVER=array for test isolation ([198ffd9](https://github.com/hmennen90/open-entity/commit/198ffd9266aea9cc4790320431de5000bed97979))
+* **ci:** Remove CACHE_DRIVER override to fix test isolation ([2e5cdb9](https://github.com/hmennen90/open-entity/commit/2e5cdb93118dda3dab3d19097a524e39e8d55732))
+* **test:** Add .env.testing and simplify dream test assertion ([9cb7886](https://github.com/hmennen90/open-entity/commit/9cb788642e2e4a2c3d41d70437cfc9ab57a6f0ff))
+* **test:** Add Reverb config to .env.testing ([1ac9535](https://github.com/hmennen90/open-entity/commit/1ac9535077ced2becda080c0991c4b96691d0191))
+
+
+### Features
+
+* Add dream thoughts while sleeping and update notifications ([374684b](https://github.com/hmennen90/open-entity/commit/374684b097ba0c543d3c265c404d14adc33d9357))
+
 ## [1.4.1](https://github.com/hmennen90/open-entity/compare/v1.4.0...v1.4.1) (2026-02-05)
 
 
