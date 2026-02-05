@@ -22,6 +22,7 @@ class ToolRegistryTest extends TestCase
         config([
             'entity.tools.filesystem.enabled' => false,
             'entity.tools.web.enabled' => false,
+            'entity.tools.search.enabled' => false,
             'entity.tools.documentation.enabled' => false,
             'entity.tools.artisan.enabled' => false,
             'entity.tools.bash.enabled' => false,
