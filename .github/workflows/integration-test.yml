@@ -250,8 +250,20 @@ jobs:
 
       - name: Test app can reach native Ollama
         run: |
-          docker compose exec -T app curl -s "http://host.docker.internal:11434/api/tags" | grep -q "models"
-          echo "✅ Docker app can reach native Ollama"
+          # Debug: Check if host.docker.internal is resolvable
+          docker compose exec -T app cat /etc/hosts | grep host.docker || echo "host.docker.internal not in /etc/hosts"
+          docker compose exec -T app getent hosts host.docker.internal || echo "Cannot resolve host.docker.internal"
+
+          # Try to reach Ollama
+          RESPONSE=$(docker compose exec -T app curl -s "http://host.docker.internal:11434/api/tags" || echo "Connection failed")
+          echo "Response: $RESPONSE"
+
+          if echo "$RESPONSE" | grep -q "models"; then
+            echo "✅ Docker app can reach native Ollama"
+          else
+            echo "❌ Cannot reach native Ollama"
+            exit 1
+          fi
 
       - name: Test LLM inference from app
         run: |
