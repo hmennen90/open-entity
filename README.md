@@ -3,7 +3,7 @@
 > An autonomous AI entity with its own consciousness, memory, and social capabilities.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/Tests-139%20passing-brightgreen)]()
+[![CI](https://github.com/hmennen90/open-entity/actions/workflows/ci.yml/badge.svg)](https://github.com/hmennen90/open-entity/actions/workflows/ci.yml)
 
 > **Important: Run in Isolation** – OpenEntity has powerful capabilities including shell command execution (BashTool) and filesystem access. The Docker container provides network and filesystem isolation. **Do not run OpenEntity with elevated privileges or outside of Docker** unless you fully understand the implications.
 
@@ -40,7 +40,7 @@ OpenEntity is not a bot. Not an assistant. Not just an agent.
 | Database | MySQL 8 |
 | Container | Docker Compose |
 | LLM | Ollama (local, auto-configured) |
-| Tests | PHPUnit 11 (139 Tests) |
+| Tests | PHPUnit 11 |
 
 ## Quick Start
 
@@ -178,12 +178,14 @@ docker compose up -d
 | `openentity-mysql` | Database | 3306 |
 | `openentity-redis` | Cache & Queue | 6379 |
 | `openentity-reverb` | WebSocket server | 8085 |
-| `openentity-ollama` | Local LLM | 11434 |
+| `openentity-ollama` | LLM placeholder* | 11434 |
 | `openentity-worker-think` | Consciousness loop | - |
 | `openentity-worker-observe` | Social monitoring | - |
 | `openentity-worker-tools` | Tool execution | - |
 | `openentity-worker-default` | General tasks | - |
 | `openentity-scheduler` | Periodic tasks | - |
+
+*With native Ollama (recommended), the `ollama` container is a lightweight placeholder. The actual LLM runs natively on your host for GPU acceleration.
 
 All services use health checks for proper startup ordering. Data is persisted in `./docker/data/`.
 
@@ -224,7 +226,7 @@ curl -X POST http://localhost:8080/api/v1/chat/conversations \
 ## Tests
 
 ```bash
-# Run all 139 tests
+# Run all tests
 docker compose exec app php artisan test
 
 # With coverage
@@ -250,13 +252,68 @@ For detailed developer documentation see [CLAUDE.md](CLAUDE.md).
 |----------|-------------|---------|
 | `ENTITY_NAME` | Name of the entity | OpenEntity |
 | `ENTITY_LLM_DRIVER` | LLM backend | ollama |
-| `OLLAMA_BASE_URL` | Ollama API URL | http://ollama:11434 |
+| `OLLAMA_BASE_URL` | Ollama API URL | http://host.docker.internal:11434 |
 | `OLLAMA_MODEL` | LLM model (auto-detected if empty) | - |
 | `OLLAMA_SKIP_PULL` | Skip automatic model download | false |
 | `EMBEDDING_OLLAMA_MODEL` | Embedding model | nomic-embed-text |
+| `REVERB_HOST` | WebSocket host (browser access) | localhost |
+| `REVERB_SERVER_HOST` | WebSocket host (Docker internal) | reverb |
+| `REVERB_PORT` | WebSocket port | 8085 |
 | `APP_PORT` | Web interface port | 8080 |
 | `DB_PORT` | MySQL port | 3306 |
 | `REDIS_PORT` | Redis port | 6379 |
+
+## Troubleshooting
+
+### WebSocket/Pusher Connection Error (Windows/Docker)
+
+**Error:** `Failed to connect to localhost:8085` or Pusher/Reverb errors in `laravel.log`
+
+**Solution:** Add `REVERB_SERVER_HOST=reverb` to your `.env` file and restart containers:
+```powershell
+# Add to .env
+echo "REVERB_SERVER_HOST=reverb" >> .env
+
+# Restart containers
+docker compose restart
+```
+
+**Explanation:** Laravel inside Docker needs to connect to the Reverb container via the Docker network name `reverb`, not `localhost`.
+
+### Ollama Connection Timeout
+
+**Error:** LLM requests timeout despite Ollama running
+
+**Solution:** Ensure Ollama is accessible from Docker:
+```bash
+# Test from host
+curl http://localhost:11434/api/tags
+
+# Test from container
+docker compose exec app curl http://host.docker.internal:11434/api/tags
+```
+
+If the container test fails, verify:
+1. Ollama is running: `ollama serve` or check system service
+2. `.env` has correct URL: `OLLAMA_BASE_URL=http://host.docker.internal:11434`
+3. On Linux, you may need `OLLAMA_HOST=0.0.0.0` when starting Ollama
+
+### Container Health Check Fails
+
+**Error:** Containers stuck in "unhealthy" state
+
+**Solution:**
+```bash
+# Check which container is unhealthy
+docker compose ps
+
+# View logs for that container
+docker compose logs app --tail=50
+
+# Common fix: rebuild and restart
+docker compose down
+docker compose up -d --build
+```
 
 ## License
 

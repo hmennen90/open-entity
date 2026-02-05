@@ -30,7 +30,7 @@ OpenEntity should:
 - [x] REST API (Entity, Chat, Mind, Memory, Goals)
 - [x] WebSocket Events (EntityStatusChanged, MessageReceived, ThoughtOccurred, ToolCreated)
 - [x] Database Migrations & Models
-- [x] 66 Tests (Unit + Feature)
+- [x] Tests (Unit + Feature)
 
 ### Frontend (Vue.js 3)
 - [x] Pinia Stores (chat, entity, memory, settings)
