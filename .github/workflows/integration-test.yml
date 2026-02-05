@@ -200,8 +200,13 @@ jobs:
         run: |
           curl -fsSL https://ollama.ai/install.sh | sh
           # Start Ollama listening on all interfaces (needed for Docker to reach it)
-          OLLAMA_HOST=0.0.0.0 ollama serve &
+          # Export so the subprocess inherits it
+          export OLLAMA_HOST=0.0.0.0
+          nohup ollama serve > /tmp/ollama.log 2>&1 &
           sleep 5
+          # Verify Ollama is listening on all interfaces
+          ss -tlnp | grep 11434 || echo "Warning: Ollama not on expected port"
+          cat /tmp/ollama.log || true
 
       - name: Pull models
         run: |
