@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/hmennen90/open-entity/compare/v1.1.0...v1.2.0) (2026-02-05)
+
+
+### Features
+
+* **tools:** Add SearchTool with page fetching and UpdateCheckTool ([8a9dae5](https://github.com/hmennen90/open-entity/commit/8a9dae567b073ea3f22f36b3e4486c35fb9a26d4))
+
 # [1.1.0](https://github.com/hmennen90/open-entity/compare/v1.0.2...v1.1.0) (2026-02-05)
 
 
