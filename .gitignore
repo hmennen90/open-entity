@@ -27,3 +27,4 @@ docker-compose.override.yml
 
 # Claude Code lokale Einstellungen
 /.claude/
+/public/build/
