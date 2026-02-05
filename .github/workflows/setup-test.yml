@@ -99,11 +99,12 @@ jobs:
           TEST_MEMORY_GB: ${{ matrix.memory }}
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-          $rawOutput = .\setup.ps1 2>&1 | Out-String
+          # Capture all streams including Information (Write-Host output)
+          $rawOutput = .\setup.ps1 *>&1 | Out-String
           Write-Host $rawOutput
 
-          # Remove ANSI escape codes for reliable matching
-          $output = $rawOutput -replace '\x1b\[[0-9;]*m', ''
+          # Remove ANSI escape codes for reliable matching (both \x1b and PowerShell's `e)
+          $output = $rawOutput -replace '\x1b\[[0-9;]*m', '' -replace '\e\[[0-9;]*m', ''
 
           # Verify correct model is recommended
           $expectedModel = switch (${{ matrix.memory }}) {
@@ -129,9 +130,10 @@ jobs:
           TEST_MEMORY_GB: ${{ matrix.memory }}
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-          $rawOutput = .\setup.ps1 2>&1 | Out-String
+          # Capture all streams including Information (Write-Host output)
+          $rawOutput = .\setup.ps1 *>&1 | Out-String
           # Remove ANSI escape codes
-          $output = $rawOutput -replace '\x1b\[[0-9;]*m', ''
+          $output = $rawOutput -replace '\x1b\[[0-9;]*m', '' -replace '\e\[[0-9;]*m', ''
           if ($output -like "*CI Test Mode*") {
             Write-Host "✅ CI Test Mode detected"
           } else {
