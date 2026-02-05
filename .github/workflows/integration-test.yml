@@ -68,9 +68,9 @@ jobs:
         run: |
           docker compose ps
 
-          # Check each service
-          for service in app mysql redis reverb; do
-            if docker compose ps $service | grep -q "healthy\|running"; then
+          # Check each service (app, mysql, redis must be healthy; reverb just needs to be up)
+          for service in app mysql redis; do
+            if docker compose ps $service | grep -q "(healthy)"; then
               echo "✅ $service is healthy"
             else
               echo "❌ $service is not healthy"
@@ -78,6 +78,14 @@ jobs:
               exit 1
             fi
           done
+          # reverb doesn't have healthcheck, just check it's running
+          if docker compose ps reverb | grep -q "Up"; then
+            echo "✅ reverb is running"
+          else
+            echo "❌ reverb is not running"
+            docker compose logs reverb --tail=50
+            exit 1
+          fi
 
       - name: Test API endpoints
         run: |
@@ -203,11 +211,9 @@ jobs:
         run: |
           cp .env.example .env
 
-          # Get host IP for Docker
-          HOST_IP=$(ip route get 1 | awk '{print $7}' | head -1)
-
+          # On Linux, use host.docker.internal which requires --add-host
           # Configure .env
-          sed -i "s|OLLAMA_BASE_URL=.*|OLLAMA_BASE_URL=http://${HOST_IP}:11434|" .env
+          sed -i "s|OLLAMA_BASE_URL=.*|OLLAMA_BASE_URL=http://host.docker.internal:11434|" .env
           sed -i "s|OLLAMA_MODEL=.*|OLLAMA_MODEL=tinyllama|" .env
           echo "COMPOSE_FILE=docker-compose.yml:docker-compose.native-ollama.yml" >> .env
           echo "OLLAMA_PORT=11435" >> .env
@@ -244,14 +250,12 @@ jobs:
 
       - name: Test app can reach native Ollama
         run: |
-          HOST_IP=$(ip route get 1 | awk '{print $7}' | head -1)
-          docker compose exec -T app curl -s "http://${HOST_IP}:11434/api/tags" | grep -q "models"
+          docker compose exec -T app curl -s "http://host.docker.internal:11434/api/tags" | grep -q "models"
           echo "✅ Docker app can reach native Ollama"
 
       - name: Test LLM inference from app
         run: |
-          HOST_IP=$(ip route get 1 | awk '{print $7}' | head -1)
-          RESPONSE=$(docker compose exec -T app curl -s "http://${HOST_IP}:11434/api/generate" \
+          RESPONSE=$(docker compose exec -T app curl -s "http://host.docker.internal:11434/api/generate" \
             -d '{"model": "tinyllama", "prompt": "Hi", "stream": false}')
 
           if echo "$RESPONSE" | grep -q "response"; then

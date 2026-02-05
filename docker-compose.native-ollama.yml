@@ -28,3 +28,24 @@ services:
     environment: []
     # Don't restart the placeholder
     restart: "no"
+
+  # Add host.docker.internal for Linux (automatically available on Docker Desktop for Mac/Windows)
+  app:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  worker-think:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  worker-observe:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  worker-tools:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  worker-default:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
