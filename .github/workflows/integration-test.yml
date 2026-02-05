@@ -22,11 +22,18 @@ jobs:
         run: cp .env.example .env
 
       - name: Build Docker images
-        run: docker compose build app nginx
+        env:
+          COMPOSE_PROJECT_NAME: openentity
+        run: |
+          # Build app image (nginx uses pre-built alpine, no custom build needed)
+          docker compose build app
+          # List built images for verification
+          docker images | grep openentity
 
       - name: Save Docker images
         run: |
-          docker save openentity-app openentity-nginx -o docker-images.tar
+          # Save the built app image
+          docker save openentity-app -o docker-images.tar
           echo "Image size: $(du -h docker-images.tar | cut -f1)"
 
       - name: Upload Docker images artifact
@@ -43,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build
+    env:
+      COMPOSE_PROJECT_NAME: openentity
 
     steps:
       - name: Checkout
@@ -232,6 +241,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build
+    env:
+      COMPOSE_PROJECT_NAME: openentity
 
     steps:
       - name: Checkout
