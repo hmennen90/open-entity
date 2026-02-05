@@ -1,3 +1,16 @@
+# [1.7.0](https://github.com/hmennen90/open-entity/compare/v1.6.0...v1.7.0) (2026-02-05)
+
+
+### Bug Fixes
+
+* **goals:** Auto-complete goals at 100% progress and add cleanup command ([7c6261d](https://github.com/hmennen90/open-entity/commit/7c6261d89b3ef3e2a4bf789100d3a05f44bc37bd))
+
+
+### Features
+
+* **entity:** Add autonomous wake-up capabilities ([139cd19](https://github.com/hmennen90/open-entity/commit/139cd19329351337dc977e2154d4518b5b5a074e))
+* **goals:** Add learnings tracking to goals ([c8aa278](https://github.com/hmennen90/open-entity/commit/c8aa278485e9b1cb8fca5ef9a1f571fe2e3fa7a1))
+
 # [1.6.0](https://github.com/hmennen90/open-entity/compare/v1.5.0...v1.6.0) (2026-02-05)
 
 
