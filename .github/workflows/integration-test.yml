@@ -255,6 +255,15 @@ jobs:
           docker compose exec -T app cat /etc/hosts | grep host.docker || echo "host.docker.internal not in /etc/hosts"
           docker compose exec -T app getent hosts host.docker.internal || echo "Cannot resolve host.docker.internal"
 
+          # Debug: Check if Ollama is listening on the host
+          echo "Checking if Ollama is listening on host..."
+          curl -s http://localhost:11434/api/tags || echo "Cannot reach Ollama on localhost"
+          ss -tlnp | grep 11434 || netstat -tlnp 2>/dev/null | grep 11434 || echo "Port 11434 not found"
+
+          # Debug: Try with verbose curl from container
+          echo "Trying curl from container with verbose output..."
+          docker compose exec -T app curl -v "http://host.docker.internal:11434/api/tags" 2>&1 || echo "Curl failed"
+
           # Try to reach Ollama
           RESPONSE=$(docker compose exec -T app curl -s "http://host.docker.internal:11434/api/tags" || echo "Connection failed")
           echo "Response: $RESPONSE"
