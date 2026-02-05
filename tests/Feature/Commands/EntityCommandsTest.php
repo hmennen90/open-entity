@@ -62,8 +62,7 @@ class EntityCommandsTest extends TestCase
         Cache::put('entity:status', 'sleeping', 86400);
 
         $this->artisan('entity:think')
-            ->expectsOutputToContain('sleeping')
-            ->expectsOutputToContain('dream')
+            ->expectsOutput('Entity is sleeping - starting dream cycle...')
             ->assertExitCode(0);
     }
 
