@@ -108,10 +108,12 @@ jobs:
             64 { "qwen2.5:72b" }
           }
 
-          if ($output -match $expectedModel) {
+          # Use -like with wildcards instead of -match (avoids regex issues with special chars)
+          if ($output -like "*$expectedModel*") {
             Write-Host "✅ Correct model selected: $expectedModel"
           } else {
             Write-Host "❌ Expected model $expectedModel not found in output"
+            Write-Host "Debug: Looking for '$expectedModel' in output"
             exit 1
           }
 
@@ -122,7 +124,7 @@ jobs:
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
           $output = .\setup.ps1 2>&1 | Out-String
-          if ($output -match "CI Test Mode") {
+          if ($output -like "*CI Test Mode*") {
             Write-Host "✅ CI Test Mode detected"
           } else {
             Write-Host "❌ CI Test Mode not detected"
