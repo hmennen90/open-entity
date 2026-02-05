@@ -31,6 +31,34 @@ class Goal extends Model
     ];
 
     /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Auto-complete goals when progress reaches 100%
+        static::saving(function (Goal $goal) {
+            // Clamp progress between 0 and 100
+            $goal->progress = min(100, max(0, $goal->progress));
+
+            // Auto-complete when progress reaches 100
+            if ($goal->progress >= 100 && $goal->status === 'active') {
+                $goal->status = 'completed';
+                $goal->completed_at = now();
+
+                // Add auto-completion note
+                $notes = $goal->progress_notes ?? [];
+                $notes[] = [
+                    'timestamp' => now()->toIso8601String(),
+                    'note' => 'Goal automatically completed (100% progress)',
+                ];
+                $goal->progress_notes = $notes;
+            }
+        });
+    }
+
+    /**
      * Scope for active goals.
      */
     public function scopeActive($query)
