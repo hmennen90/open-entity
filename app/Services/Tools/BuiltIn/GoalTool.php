@@ -28,8 +28,9 @@ class GoalTool implements ToolInterface
 
     public function description(): string
     {
-        return 'Manage goals: create new goals, update progress, find similar goals, and complete/abandon goals. ' .
-            'Automatically detects similar existing goals to prevent duplicates.';
+        return 'Manage goals: create new goals, update progress, add learnings, find similar goals, and complete/abandon goals. ' .
+            'Automatically detects similar existing goals to prevent duplicates. ' .
+            'Track learnings to remember what was learned from each goal.';
     }
 
     public function parameters(): array
@@ -39,7 +40,7 @@ class GoalTool implements ToolInterface
             'properties' => [
                 'action' => [
                     'type' => 'string',
-                    'enum' => ['create', 'update_progress', 'find_similar', 'complete', 'abandon', 'list', 'get'],
+                    'enum' => ['create', 'update_progress', 'add_learning', 'find_similar', 'complete', 'abandon', 'list', 'get'],
                     'description' => 'The action to perform',
                 ],
                 'goal_id' => [
@@ -74,6 +75,10 @@ class GoalTool implements ToolInterface
                 'progress_note' => [
                     'type' => 'string',
                     'description' => 'Note explaining the progress update (for update_progress)',
+                ],
+                'learning' => [
+                    'type' => 'string',
+                    'description' => 'What was learned from working on this goal (for add_learning, update_progress, complete)',
                 ],
                 'reason' => [
                     'type' => 'string',
@@ -114,6 +119,7 @@ class GoalTool implements ToolInterface
         return match ($action) {
             'create' => $this->createGoal($params),
             'update_progress' => $this->updateProgress($params),
+            'add_learning' => $this->addLearning($params),
             'find_similar' => $this->findSimilar($params),
             'complete' => $this->completeGoal($params),
             'abandon' => $this->abandonGoal($params),
@@ -121,7 +127,7 @@ class GoalTool implements ToolInterface
             'get' => $this->getGoal($params),
             default => [
                 'success' => false,
-                'error' => 'Invalid action. Use: create, update_progress, find_similar, complete, abandon, list, get',
+                'error' => 'Invalid action. Use: create, update_progress, add_learning, find_similar, complete, abandon, list, get',
             ],
         };
     }
@@ -223,6 +229,11 @@ class GoalTool implements ToolInterface
             $goal->progress_notes = $notes;
         }
 
+        // Add learning if provided
+        if (!empty($params['learning'])) {
+            $this->addLearningToGoal($goal, $params['learning']);
+        }
+
         $goal->save();
 
         return [
@@ -232,6 +243,50 @@ class GoalTool implements ToolInterface
                 ? "Goal completed! Progress reached 100%"
                 : "Progress updated to {$goal->progress}%",
         ];
+    }
+
+    /**
+     * Add a learning to a goal.
+     */
+    private function addLearning(array $params): array
+    {
+        $goalId = $params['goal_id'] ?? null;
+        if (!$goalId) {
+            return ['success' => false, 'error' => 'goal_id is required'];
+        }
+
+        $learning = $params['learning'] ?? null;
+        if (!$learning) {
+            return ['success' => false, 'error' => 'learning is required'];
+        }
+
+        $goal = Goal::find($goalId);
+        if (!$goal) {
+            return ['success' => false, 'error' => "Goal with ID {$goalId} not found"];
+        }
+
+        $this->addLearningToGoal($goal, $learning);
+        $goal->save();
+
+        return [
+            'success' => true,
+            'goal' => $this->formatGoal($goal),
+            'message' => "Learning added to goal '{$goal->title}'",
+        ];
+    }
+
+    /**
+     * Helper to add a learning to a goal.
+     */
+    private function addLearningToGoal(Goal $goal, string $learning): void
+    {
+        $learnings = $goal->learnings ?? [];
+        $learnings[] = [
+            'timestamp' => now()->toIso8601String(),
+            'content' => $learning,
+            'progress_at_time' => $goal->progress,
+        ];
+        $goal->learnings = $learnings;
     }
 
     /**
@@ -279,6 +334,12 @@ class GoalTool implements ToolInterface
             'note' => $params['progress_note'] ?? 'Goal completed',
         ];
         $goal->progress_notes = $notes;
+
+        // Add final learning if provided
+        if (!empty($params['learning'])) {
+            $this->addLearningToGoal($goal, $params['learning']);
+        }
+
         $goal->save();
 
         return [
@@ -314,6 +375,12 @@ class GoalTool implements ToolInterface
             'note' => "Goal abandoned: {$reason}",
         ];
         $goal->progress_notes = $notes;
+
+        // Add learning even when abandoning (learned what didn't work)
+        if (!empty($params['learning'])) {
+            $this->addLearningToGoal($goal, $params['learning']);
+        }
+
         $goal->save();
 
         return [
@@ -449,6 +516,7 @@ class GoalTool implements ToolInterface
             'status' => $goal->status,
             'progress' => $goal->progress,
             'progress_notes' => $goal->progress_notes,
+            'learnings' => $goal->learnings,
             'origin' => $goal->origin,
             'created_at' => $goal->created_at?->toIso8601String(),
             'completed_at' => $goal->completed_at?->toIso8601String(),

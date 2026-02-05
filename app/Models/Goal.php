@@ -18,6 +18,7 @@ class Goal extends Model
         'status', // 'active', 'paused', 'completed', 'abandoned'
         'progress', // 0 - 100 (percentage)
         'progress_notes', // Progress notes (JSON Array)
+        'learnings', // What was learned from this goal (JSON Array)
         'origin', // How did the goal originate? 'self', 'suggested', 'derived'
         'completed_at',
         'abandoned_reason',
@@ -27,6 +28,7 @@ class Goal extends Model
         'priority' => 'float',
         'progress' => 'float',
         'progress_notes' => 'array',
+        'learnings' => 'array',
         'completed_at' => 'datetime',
     ];
 
