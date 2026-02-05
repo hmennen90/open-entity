@@ -14,6 +14,9 @@ return [
     // Name of the entity
     'name' => env('ENTITY_NAME', 'OpenEntity'),
 
+    // Current version (for update checks)
+    'version' => env('ENTITY_VERSION', '1.0.2'),
+
     // Think loop interval in seconds
     'think_interval' => (int) env('ENTITY_THINK_INTERVAL', 30),
 
@@ -213,6 +216,18 @@ return [
             'enabled' => true,
             // Empty array = full access to all commands
             'allowed_commands' => [],
+        ],
+        'search' => [
+            'enabled' => true,
+            'timeout' => 15,
+        ],
+        'personality' => [
+            'enabled' => true,
+        ],
+        'update_check' => [
+            'enabled' => true,
+            'timeout' => 10,
+            'repository' => env('ENTITY_UPDATE_REPOSITORY', 'hmennen90/open-entity'),
         ],
     ],
 

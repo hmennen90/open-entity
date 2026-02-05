@@ -10,6 +10,7 @@ use App\Services\Tools\BuiltIn\DocumentationTool;
 use App\Services\Tools\BuiltIn\ArtisanTool;
 use App\Services\Tools\BuiltIn\BashTool;
 use App\Services\Tools\BuiltIn\PersonalityTool;
+use App\Services\Tools\BuiltIn\UpdateCheckTool;
 use App\Events\ToolCreated;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
@@ -307,6 +308,13 @@ class ToolRegistry
         // Personality Tool - allows the entity to evolve its own personality
         if (config('entity.tools.personality.enabled', true)) {
             $this->register(new PersonalityTool());
+        }
+
+        // Update Check Tool - allows the entity to check for new versions
+        if (config('entity.tools.update_check.enabled', true)) {
+            $this->register(new UpdateCheckTool(
+                config('entity.tools.update_check.timeout', 10)
+            ));
         }
     }
 

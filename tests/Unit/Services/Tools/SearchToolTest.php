@@ -76,6 +76,41 @@ class SearchToolTest extends TestCase
     }
 
     /** @test */
+    public function it_defines_fetch_pages_parameter(): void
+    {
+        $params = $this->searchTool->parameters();
+
+        $this->assertArrayHasKey('fetch_pages', $params['properties']);
+        $this->assertEquals('boolean', $params['properties']['fetch_pages']['type']);
+    }
+
+    /** @test */
+    public function it_validates_max_results_with_fetch_pages(): void
+    {
+        $result = $this->searchTool->validate([
+            'query' => 'test',
+            'max_results' => 8,
+            'fetch_pages' => true,
+        ]);
+
+        $this->assertFalse($result['valid']);
+        $this->assertContains('max_results cannot exceed 5 when fetch_pages is enabled', $result['errors']);
+    }
+
+    /** @test */
+    public function it_accepts_valid_fetch_pages_parameters(): void
+    {
+        $result = $this->searchTool->validate([
+            'query' => 'test query',
+            'max_results' => 3,
+            'fetch_pages' => true,
+        ]);
+
+        $this->assertTrue($result['valid']);
+        $this->assertEmpty($result['errors']);
+    }
+
+    /** @test */
     public function it_accepts_valid_parameters(): void
     {
         $result = $this->searchTool->validate([
@@ -104,5 +139,7 @@ class SearchToolTest extends TestCase
         $this->assertIsArray($result['result']);
         $this->assertEquals('PHP programming language', $result['result']['query']);
         $this->assertIsArray($result['result']['results']);
+        $this->assertArrayHasKey('pages_fetched', $result['result']);
+        $this->assertFalse($result['result']['pages_fetched']);
     }
 }

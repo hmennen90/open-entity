@@ -27,6 +27,7 @@ class ToolRegistryTest extends TestCase
             'entity.tools.artisan.enabled' => false,
             'entity.tools.bash.enabled' => false,
             'entity.tools.personality.enabled' => false,
+            'entity.tools.update_check.enabled' => false,
         ]);
 
         $sandbox = new ToolSandbox(new ToolValidator());

@@ -9,16 +9,18 @@ use Illuminate\Support\Facades\Http;
  * Search Tool - Enables web searches via DuckDuckGo.
  *
  * Use this tool to search the web for information.
- * For direct page access, use the WebTool instead.
+ * Can optionally fetch the content of search result pages.
  */
 class SearchTool implements ToolInterface
 {
     private int $timeout;
+    private int $fetchTimeout;
     private string $userAgent;
 
-    public function __construct(int $timeout = 15)
+    public function __construct(int $timeout = 15, int $fetchTimeout = 10)
     {
         $this->timeout = $timeout;
+        $this->fetchTimeout = $fetchTimeout;
         $this->userAgent = 'OpenEntity/1.0 (Autonomous AI Entity; +https://github.com/openentity)';
     }
 
@@ -31,7 +33,7 @@ class SearchTool implements ToolInterface
     {
         return 'Search the web using DuckDuckGo. ' .
                'Returns search results with titles, URLs and snippets. ' .
-               'Use this for finding information, NOT for direct page access (use web tool for that).';
+               'Set fetch_pages=true to also retrieve the full content of each result page.';
     }
 
     public function parameters(): array
@@ -46,6 +48,10 @@ class SearchTool implements ToolInterface
                 'max_results' => [
                     'type' => 'integer',
                     'description' => 'Maximum number of results to return (default: 5, max: 10)',
+                ],
+                'fetch_pages' => [
+                    'type' => 'boolean',
+                    'description' => 'If true, fetch the full content of each result page (default: false). Use this when you need to read the actual page content, not just snippets.',
                 ],
                 'region' => [
                     'type' => 'string',
@@ -74,6 +80,11 @@ class SearchTool implements ToolInterface
             }
         }
 
+        // When fetching pages, limit max_results to avoid excessive requests
+        if (!empty($params['fetch_pages']) && isset($params['max_results']) && $params['max_results'] > 5) {
+            $errors[] = 'max_results cannot exceed 5 when fetch_pages is enabled';
+        }
+
         return [
             'valid' => empty($errors),
             'errors' => $errors,
@@ -83,7 +94,8 @@ class SearchTool implements ToolInterface
     public function execute(array $params): array
     {
         $query = $params['query'];
-        $maxResults = min($params['max_results'] ?? 5, 10);
+        $fetchPages = $params['fetch_pages'] ?? false;
+        $maxResults = min($params['max_results'] ?? ($fetchPages ? 3 : 5), $fetchPages ? 5 : 10);
         $region = $params['region'] ?? 'wt-wt'; // World-wide by default
 
         try {
@@ -113,11 +125,17 @@ class SearchTool implements ToolInterface
 
             $results = $this->parseSearchResults($response->body(), $maxResults);
 
+            // Optionally fetch page contents
+            if ($fetchPages && !empty($results)) {
+                $results = $this->fetchPageContents($results);
+            }
+
             return [
                 'success' => true,
                 'result' => [
                     'query' => $query,
                     'results_count' => count($results),
+                    'pages_fetched' => $fetchPages,
                     'results' => $results,
                 ],
                 'error' => null,
@@ -133,6 +151,88 @@ class SearchTool implements ToolInterface
                 ],
             ];
         }
+    }
+
+    /**
+     * Fetch the content of each search result page.
+     */
+    private function fetchPageContents(array $results): array
+    {
+        foreach ($results as &$result) {
+            try {
+                $response = Http::timeout($this->fetchTimeout)
+                    ->withHeaders([
+                        'User-Agent' => $this->userAgent,
+                        'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language' => 'en-US,en;q=0.9,de;q=0.8',
+                    ])
+                    ->get($result['url']);
+
+                if ($response->successful()) {
+                    $body = $response->body();
+                    $result['content'] = $this->extractReadableContent($body);
+                    $result['fetch_status'] = 'success';
+                } else {
+                    $result['content'] = null;
+                    $result['fetch_status'] = 'failed';
+                    $result['fetch_error'] = 'HTTP ' . $response->status();
+                }
+            } catch (\Exception $e) {
+                $result['content'] = null;
+                $result['fetch_status'] = 'failed';
+                $result['fetch_error'] = $e->getMessage();
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Extract readable text content from HTML.
+     */
+    private function extractReadableContent(string $html): string
+    {
+        // Remove script and style elements
+        $html = preg_replace('/<script\b[^>]*>(.*?)<\/script>/is', '', $html);
+        $html = preg_replace('/<style\b[^>]*>(.*?)<\/style>/is', '', $html);
+        $html = preg_replace('/<nav\b[^>]*>(.*?)<\/nav>/is', '', $html);
+        $html = preg_replace('/<footer\b[^>]*>(.*?)<\/footer>/is', '', $html);
+        $html = preg_replace('/<header\b[^>]*>(.*?)<\/header>/is', '', $html);
+
+        // Try to extract main content areas
+        $mainContent = '';
+        if (preg_match('/<main\b[^>]*>(.*?)<\/main>/is', $html, $matches)) {
+            $mainContent = $matches[1];
+        } elseif (preg_match('/<article\b[^>]*>(.*?)<\/article>/is', $html, $matches)) {
+            $mainContent = $matches[1];
+        } elseif (preg_match('/<div[^>]*class="[^"]*content[^"]*"[^>]*>(.*?)<\/div>/is', $html, $matches)) {
+            $mainContent = $matches[1];
+        } else {
+            // Fall back to body content
+            if (preg_match('/<body\b[^>]*>(.*?)<\/body>/is', $html, $matches)) {
+                $mainContent = $matches[1];
+            } else {
+                $mainContent = $html;
+            }
+        }
+
+        // Convert to text
+        $text = strip_tags($mainContent);
+
+        // Clean up whitespace
+        $text = preg_replace('/\s+/', ' ', $text);
+        $text = trim($text);
+
+        // Decode HTML entities
+        $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
+
+        // Limit size to avoid huge responses
+        $maxLength = 15000;
+        if (strlen($text) > $maxLength) {
+            $text = substr($text, 0, $maxLength) . "\n\n[... content truncated, total length: " . strlen($text) . " characters]";
+        }
+
+        return $text;
     }
 
     /**
