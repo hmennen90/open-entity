@@ -40,8 +40,11 @@ jobs:
         env:
           TEST_MEMORY_GB: ${{ matrix.memory }}
         run: |
-          OUTPUT=$(./setup.sh 2>&1)
-          echo "$OUTPUT"
+          RAW_OUTPUT=$(./setup.sh 2>&1)
+          echo "$RAW_OUTPUT"
+
+          # Remove ANSI escape codes for reliable matching
+          OUTPUT=$(echo "$RAW_OUTPUT" | sed 's/\x1b\[[0-9;]*m//g')
 
           # Verify correct model is recommended
           case ${{ matrix.memory }} in
@@ -96,8 +99,11 @@ jobs:
           TEST_MEMORY_GB: ${{ matrix.memory }}
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-          $output = .\setup.ps1 2>&1 | Out-String
-          Write-Host $output
+          $rawOutput = .\setup.ps1 2>&1 | Out-String
+          Write-Host $rawOutput
+
+          # Remove ANSI escape codes for reliable matching
+          $output = $rawOutput -replace '\x1b\[[0-9;]*m', ''
 
           # Verify correct model is recommended
           $expectedModel = switch (${{ matrix.memory }}) {
@@ -108,12 +114,12 @@ jobs:
             64 { "qwen2.5:72b" }
           }
 
-          # Use -like with wildcards instead of -match (avoids regex issues with special chars)
+          # Use -like with wildcards
           if ($output -like "*$expectedModel*") {
             Write-Host "✅ Correct model selected: $expectedModel"
           } else {
             Write-Host "❌ Expected model $expectedModel not found in output"
-            Write-Host "Debug: Looking for '$expectedModel' in output"
+            Write-Host "Debug: Looking for '$expectedModel'"
             exit 1
           }
 
@@ -123,7 +129,9 @@ jobs:
           TEST_MEMORY_GB: ${{ matrix.memory }}
         run: |
           Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-          $output = .\setup.ps1 2>&1 | Out-String
+          $rawOutput = .\setup.ps1 2>&1 | Out-String
+          # Remove ANSI escape codes
+          $output = $rawOutput -replace '\x1b\[[0-9;]*m', ''
           if ($output -like "*CI Test Mode*") {
             Write-Host "✅ CI Test Mode detected"
           } else {
