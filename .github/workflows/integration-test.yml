@@ -1,0 +1,226 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:  # Allow this workflow to be called by other workflows
+
+jobs:
+  # Docker Compose Integration Test
+  docker-integration:
+    name: Docker Compose Stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cp .env.example .env
+          # Use Docker Ollama for this test (not native)
+          sed -i 's|OLLAMA_BASE_URL=.*|OLLAMA_BASE_URL=http://ollama:11434|' .env
+          sed -i 's|COMPOSE_FILE=.*||' .env
+          # Use smallest model for faster tests
+          echo "OLLAMA_MODEL=tinyllama" >> .env
+          echo "OLLAMA_SKIP_PULL=false" >> .env
+
+      - name: Build and start containers
+        run: |
+          docker compose up -d --build
+          echo "Waiting for containers to be healthy..."
+
+      - name: Wait for app container
+        run: |
+          timeout 300 bash -c 'until docker compose exec -T app php artisan --version; do sleep 5; done'
+          echo "✅ App container is ready"
+
+      - name: Wait for Ollama container
+        run: |
+          timeout 300 bash -c 'until docker compose exec -T ollama curl -s http://localhost:11434/api/tags | grep -q "models"; do sleep 10; done'
+          echo "✅ Ollama container is ready"
+
+      - name: Check all services health
+        run: |
+          docker compose ps
+
+          # Check each service
+          for service in app mysql redis reverb; do
+            if docker compose ps $service | grep -q "healthy\|running"; then
+              echo "✅ $service is healthy"
+            else
+              echo "❌ $service is not healthy"
+              docker compose logs $service --tail=50
+              exit 1
+            fi
+          done
+
+      - name: Test API endpoints
+        run: |
+          # Wait for nginx
+          sleep 10
+
+          # Test entity status endpoint
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/entity/status)
+          if [ "$RESPONSE" == "200" ]; then
+            echo "✅ API /entity/status returns 200"
+          else
+            echo "❌ API /entity/status returns $RESPONSE"
+            docker compose logs nginx --tail=20
+            docker compose logs app --tail=50
+            exit 1
+          fi
+
+          # Test entity state endpoint
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/entity/state)
+          if [ "$RESPONSE" == "200" ]; then
+            echo "✅ API /entity/state returns 200"
+          else
+            echo "❌ API /entity/state returns $RESPONSE"
+            exit 1
+          fi
+
+      - name: Test Ollama connectivity from app
+        run: |
+          # Test that app can reach Ollama
+          docker compose exec -T app curl -s http://ollama:11434/api/tags | grep -q "models"
+          echo "✅ App can connect to Ollama"
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          echo "=== App Logs ==="
+          docker compose logs app --tail=100
+          echo "=== Ollama Logs ==="
+          docker compose logs ollama --tail=100
+          echo "=== Nginx Logs ==="
+          docker compose logs nginx --tail=50
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
+
+  # Ollama Native Integration Test
+  ollama-native:
+    name: Native Ollama Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.ai/install.sh | sh
+          echo "✅ Ollama installed"
+
+      - name: Start Ollama
+        run: |
+          ollama serve &
+          sleep 5
+          curl -s http://localhost:11434/api/tags
+          echo "✅ Ollama is running"
+
+      - name: Pull test model
+        run: |
+          ollama pull tinyllama
+          echo "✅ Model pulled"
+
+      - name: Test model inference
+        run: |
+          RESPONSE=$(curl -s http://localhost:11434/api/generate -d '{"model": "tinyllama", "prompt": "Say hello", "stream": false}')
+          if echo "$RESPONSE" | grep -q "response"; then
+            echo "✅ Model inference works"
+            echo "Response: $(echo $RESPONSE | jq -r '.response' | head -c 100)"
+          else
+            echo "❌ Model inference failed"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+      - name: Test setup.sh install simulation
+        env:
+          TEST_MEMORY_GB: 8
+        run: |
+          # Test that setup.sh detects the already-running Ollama
+          OUTPUT=$(./setup.sh status 2>&1)
+          echo "$OUTPUT"
+
+          if echo "$OUTPUT" | grep -q "Running"; then
+            echo "✅ Setup script detects running Ollama"
+          else
+            echo "❌ Setup script doesn't detect Ollama"
+            exit 1
+          fi
+
+  # Native Ollama with Docker App
+  native-ollama-docker:
+    name: Native Ollama + Docker App
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ollama natively
+        run: |
+          curl -fsSL https://ollama.ai/install.sh | sh
+          ollama serve &
+          sleep 5
+
+      - name: Pull models
+        run: |
+          ollama pull tinyllama
+          ollama pull nomic-embed-text
+
+      - name: Configure for native Ollama
+        run: |
+          cp .env.example .env
+
+          # Get host IP for Docker
+          HOST_IP=$(ip route get 1 | awk '{print $7}' | head -1)
+
+          # Configure .env
+          sed -i "s|OLLAMA_BASE_URL=.*|OLLAMA_BASE_URL=http://${HOST_IP}:11434|" .env
+          sed -i "s|OLLAMA_MODEL=.*|OLLAMA_MODEL=tinyllama|" .env
+          echo "COMPOSE_FILE=docker-compose.yml:docker-compose.native-ollama.yml" >> .env
+          echo "OLLAMA_PORT=11435" >> .env
+
+          cat .env | grep -E "OLLAMA|COMPOSE"
+
+      - name: Start Docker containers (without Ollama)
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.native-ollama.yml up -d --build
+
+      - name: Wait for app container
+        run: |
+          timeout 300 bash -c 'until docker compose exec -T app php artisan --version; do sleep 5; done'
+
+      - name: Test app can reach native Ollama
+        run: |
+          HOST_IP=$(ip route get 1 | awk '{print $7}' | head -1)
+          docker compose exec -T app curl -s "http://${HOST_IP}:11434/api/tags" | grep -q "models"
+          echo "✅ Docker app can reach native Ollama"
+
+      - name: Test LLM inference from app
+        run: |
+          HOST_IP=$(ip route get 1 | awk '{print $7}' | head -1)
+          RESPONSE=$(docker compose exec -T app curl -s "http://${HOST_IP}:11434/api/generate" \
+            -d '{"model": "tinyllama", "prompt": "Hi", "stream": false}')
+
+          if echo "$RESPONSE" | grep -q "response"; then
+            echo "✅ LLM inference from Docker works"
+          else
+            echo "❌ LLM inference failed"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v

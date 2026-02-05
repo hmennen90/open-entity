@@ -1,0 +1,185 @@
+name: Setup Script Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'setup.sh'
+      - 'setup.ps1'
+      - 'setup.bat'
+      - 'docker-compose*.yml'
+      - '.github/workflows/setup-test.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'setup.sh'
+      - 'setup.ps1'
+      - 'setup.bat'
+      - 'docker-compose*.yml'
+      - '.github/workflows/setup-test.yml'
+  workflow_call:  # Allow this workflow to be called by other workflows
+
+jobs:
+  # Test setup.sh on Linux
+  linux-setup:
+    name: Linux Setup (${{ matrix.memory }}GB RAM)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        memory: [4, 8, 16, 32, 64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test help output
+        run: ./setup.sh help
+
+      - name: Test model selection for ${{ matrix.memory }}GB
+        env:
+          TEST_MEMORY_GB: ${{ matrix.memory }}
+        run: |
+          OUTPUT=$(./setup.sh 2>&1)
+          echo "$OUTPUT"
+
+          # Verify correct model is recommended
+          case ${{ matrix.memory }} in
+            4)  EXPECTED_MODEL="qwen2.5:3b" ;;
+            8)  EXPECTED_MODEL="qwen2.5:7b" ;;
+            16) EXPECTED_MODEL="qwen2.5:14b" ;;
+            32) EXPECTED_MODEL="qwen2.5:32b" ;;
+            64) EXPECTED_MODEL="qwen2.5:72b" ;;
+          esac
+
+          if echo "$OUTPUT" | grep -q "$EXPECTED_MODEL"; then
+            echo "✅ Correct model selected: $EXPECTED_MODEL"
+          else
+            echo "❌ Expected model $EXPECTED_MODEL not found in output"
+            exit 1
+          fi
+
+      - name: Test CI mode detection
+        env:
+          TEST_MEMORY_GB: ${{ matrix.memory }}
+        run: |
+          OUTPUT=$(./setup.sh 2>&1)
+          if echo "$OUTPUT" | grep -q "CI Test Mode"; then
+            echo "✅ CI Test Mode detected"
+          else
+            echo "❌ CI Test Mode not detected"
+            exit 1
+          fi
+
+  # Test setup.ps1 on Windows
+  windows-setup:
+    name: Windows Setup (${{ matrix.memory }}GB RAM)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        memory: [4, 8, 16, 32, 64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test help output
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+          .\setup.ps1 help
+
+      - name: Test model selection for ${{ matrix.memory }}GB
+        shell: pwsh
+        env:
+          TEST_MEMORY_GB: ${{ matrix.memory }}
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+          $output = .\setup.ps1 2>&1 | Out-String
+          Write-Host $output
+
+          # Verify correct model is recommended
+          $expectedModel = switch (${{ matrix.memory }}) {
+            4  { "qwen2.5:3b" }
+            8  { "qwen2.5:7b" }
+            16 { "qwen2.5:14b" }
+            32 { "qwen2.5:32b" }
+            64 { "qwen2.5:72b" }
+          }
+
+          if ($output -match $expectedModel) {
+            Write-Host "✅ Correct model selected: $expectedModel"
+          } else {
+            Write-Host "❌ Expected model $expectedModel not found in output"
+            exit 1
+          }
+
+      - name: Test CI mode detection
+        shell: pwsh
+        env:
+          TEST_MEMORY_GB: ${{ matrix.memory }}
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+          $output = .\setup.ps1 2>&1 | Out-String
+          if ($output -match "CI Test Mode") {
+            Write-Host "✅ CI Test Mode detected"
+          } else {
+            Write-Host "❌ CI Test Mode not detected"
+            exit 1
+          }
+
+  # Test setup.sh on macOS
+  macos-setup:
+    name: macOS Setup (${{ matrix.memory }}GB RAM)
+    runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        memory: [8, 16, 32]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test help output
+        run: ./setup.sh help
+
+      - name: Test model selection for ${{ matrix.memory }}GB
+        env:
+          TEST_MEMORY_GB: ${{ matrix.memory }}
+        run: |
+          OUTPUT=$(./setup.sh 2>&1)
+          echo "$OUTPUT"
+
+          # Verify correct model is recommended
+          case ${{ matrix.memory }} in
+            8)  EXPECTED_MODEL="qwen2.5:7b" ;;
+            16) EXPECTED_MODEL="qwen2.5:14b" ;;
+            32) EXPECTED_MODEL="qwen2.5:32b" ;;
+          esac
+
+          if echo "$OUTPUT" | grep -q "$EXPECTED_MODEL"; then
+            echo "✅ Correct model selected: $EXPECTED_MODEL"
+          else
+            echo "❌ Expected model $EXPECTED_MODEL not found in output"
+            exit 1
+          fi
+
+  # Summary job
+  setup-test-summary:
+    name: Setup Tests Summary
+    needs: [linux-setup, windows-setup, macos-setup]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          if [ "${{ needs.linux-setup.result }}" == "failure" ] || \
+             [ "${{ needs.windows-setup.result }}" == "failure" ] || \
+             [ "${{ needs.macos-setup.result }}" == "failure" ]; then
+            echo "❌ Some setup tests failed"
+            exit 1
+          fi
+          echo "✅ All setup tests passed"

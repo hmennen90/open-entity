@@ -33,11 +33,11 @@ return [
             'ollama' => [
                 'base_url' => env('OLLAMA_BASE_URL', 'http://localhost:11434'),
                 'model' => env('OLLAMA_MODEL', 'qwen-coder:30b'),
-                'timeout' => 300, // 5 minutes for CPU-based inference
+                'timeout' => (int) env('OLLAMA_TIMEOUT', 600), // 10 minutes for CPU-based inference
                 'options' => [
                     'temperature' => 0.8,
                     'top_p' => 0.9,
-                    'num_ctx' => 8192,
+                    'num_ctx' => (int) env('OLLAMA_NUM_CTX', 4096),
                 ],
             ],
             'openai' => [
@@ -110,9 +110,9 @@ return [
 
             'drivers' => [
                 'ollama' => [
-                    'base_url' => env('EMBEDDING_OLLAMA_BASE_URL', env('OLLAMA_BASE_URL', 'http://192.168.1.36:11434')),
+                    'base_url' => env('EMBEDDING_OLLAMA_BASE_URL', env('OLLAMA_BASE_URL', 'http://localhost:11434')),
                     'model' => env('EMBEDDING_OLLAMA_MODEL', 'nomic-embed-text'),
-                    'timeout' => 60,
+                    'timeout' => (int) env('OLLAMA_EMBEDDING_TIMEOUT', 120),
                     'dimensions' => 768,
                 ],
                 'openai' => [

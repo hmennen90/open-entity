@@ -51,84 +51,100 @@ OpenEntity is not a bot. Not an assistant. Not just an agent.
 
 ### Installation
 
+The setup script installs Ollama **natively** on your system for GPU acceleration, then starts Docker containers for the application.
+
 ```bash
 # Clone repository
 git clone https://github.com/hmennen90/open-entity.git
 cd open-entity
 
-# Start with setup script (recommended)
-./setup.sh --start        # Linux/macOS
-setup.bat start           # Windows CMD
-powershell -ExecutionPolicy Bypass -File setup.ps1 -Start  # Windows PowerShell
+# Install Ollama and pull models (first time)
+./setup.sh install        # Linux/macOS
+setup.bat install         # Windows CMD
+.\setup.ps1 install       # Windows PowerShell
 
-# Or manually
-docker compose up -d
+# Start OpenEntity
+./setup.sh start          # Linux/macOS
+setup.bat start           # Windows CMD
+.\setup.ps1 start         # Windows PowerShell
+
+# Windows: If you get an ExecutionPolicy error, run:
+powershell -ExecutionPolicy Bypass -File setup.ps1 install
 ```
 
-**That's it!** The first start automatically:
-- Installs Composer and NPM dependencies
-- Creates `.env` from `.env.example`
-- Generates Laravel application key
-- Runs database migrations
-- Detects GPU/VRAM and pulls appropriate LLM model
-- Seeds default LLM configuration
+**That's it!** The setup script automatically:
+- Detects your GPU (NVIDIA, AMD, Apple Silicon) and RAM
+- Installs Ollama natively for GPU acceleration
+- Pulls the optimal LLM model for your hardware
+- Configures Docker to connect to native Ollama
+- Starts all application containers
 
 OpenEntity is accessible at **http://localhost:8080** once all containers are healthy.
 
-> **Note:** First startup takes several minutes (dependency installation, model download). Check progress with `docker logs -f openentity-app` and `docker logs -f openentity-ollama`.
+> **Note:** First startup takes several minutes (dependency installation, model download). Check progress with `./setup.sh status`.
 
-### GPU Acceleration
+### Why Native Ollama?
 
-The setup scripts automatically detect your GPU:
+Ollama runs **natively** on your host (not in Docker) because:
+- **macOS/Apple Silicon**: Docker cannot access Metal GPU
+- **Windows**: Docker cannot access NVIDIA/AMD GPU without WSL2 complexity
+- **Linux with GPU**: Native Ollama has better GPU memory management
 
-| GPU | Detection | Docker Compose |
-|-----|-----------|----------------|
-| NVIDIA | `nvidia-smi` | `docker-compose.gpu.yml` overlay |
-| AMD | `rocm-smi` | Standard (ROCm in Ollama) |
-| Apple Silicon | `sysctl hw.optional.arm64` | Unified Memory |
-| None | - | CPU mode |
+The setup scripts handle everything automatically, including configuring Docker to reach the native Ollama service.
 
-#### Model Selection by VRAM
+### GPU & Model Selection
 
-| VRAM | Model |
-|------|-------|
-| < 6 GB | `qwen2.5:7b-instruct-q4_K_M` |
-| 6-10 GB | `qwen2.5:7b-instruct-q5_K_M` |
-| 10-16 GB | `qwen2.5:14b-instruct-q5_K_M` |
-| 16-24 GB | `qwen2.5:32b-instruct-q4_K_M` |
-| 24-40 GB | `qwen2.5:32b-instruct-q5_K_M` |
-| > 40 GB | `qwen2.5:72b-instruct-q5_K_M` |
+The setup scripts detect your hardware and select the optimal model:
 
-#### Manual GPU Setup
+| Platform | GPU Acceleration | Memory Used |
+|----------|-----------------|-------------|
+| macOS Apple Silicon | Metal (native) | Unified Memory |
+| Linux NVIDIA | CUDA (native) | VRAM |
+| Linux AMD | ROCm (native) | VRAM |
+| Windows NVIDIA | CUDA (native) | VRAM |
+| CPU only | None | System RAM |
+
+#### Model Selection by Memory
+
+| Memory | Model |
+|--------|-------|
+| < 6 GB | `qwen2.5:3b` |
+| 6-10 GB | `qwen2.5:7b` |
+| 10-18 GB | `qwen2.5:14b` |
+| 18-48 GB | `qwen2.5:32b` |
+| > 48 GB | `qwen2.5:72b` |
+
+#### Use a Specific Model
 
 ```bash
-# NVIDIA GPU (Linux/Windows with WSL2)
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
-
-# Apple Silicon (native Ollama for best performance)
-brew install ollama
-ollama serve
-# Set in .env: OLLAMA_BASE_URL=http://host.docker.internal:11434
+./setup.sh start --model qwen2.5:14b    # Linux/macOS
+.\setup.ps1 start -Model qwen2.5:14b    # Windows PowerShell
 ```
 
-#### Windows with Native Ollama
+#### Manual Setup (Advanced)
 
-If you have Ollama installed natively on Windows (via `winget install Ollama.Ollama` or the installer), you need to configure the URL so Docker containers can reach it:
+If you prefer to manage Ollama yourself:
 
-1. Make sure Ollama is running on your Windows host
-2. Update your `.env` file:
-   ```
-   OLLAMA_BASE_URL=http://host.docker.internal:11434
-   ```
-3. Start Docker containers: `docker compose up -d`
-
-> **Note:** `host.docker.internal` is a special DNS name that Docker Desktop provides to access the host machine from within containers.
-
-#### Skip Model Pull
-
-If you already have models or want to pull manually:
 ```bash
-OLLAMA_SKIP_PULL=true docker compose up -d
+# Install Ollama manually
+# macOS: brew install ollama
+# Linux: curl -fsSL https://ollama.ai/install.sh | sh
+# Windows: winget install Ollama.Ollama
+
+# Start Ollama
+ollama serve
+
+# Pull models
+ollama pull qwen2.5:7b
+ollama pull nomic-embed-text
+
+# Configure .env
+echo "OLLAMA_BASE_URL=http://host.docker.internal:11434" >> .env
+echo "OLLAMA_MODEL=qwen2.5:7b" >> .env
+echo "COMPOSE_FILE=docker-compose.yml:docker-compose.native-ollama.yml" >> .env
+
+# Start Docker (without Ollama container)
+docker compose up -d
 ```
 
 ## Architecture

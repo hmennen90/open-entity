@@ -1,0 +1,30 @@
+# Docker Compose Override for Native Ollama
+# Use this when Ollama runs natively on the host instead of in Docker
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.native-ollama.yml up -d
+#
+# Required in .env:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.native-ollama.yml
+#   OLLAMA_PORT=11435  # Avoid conflict with native Ollama on 11434
+
+services:
+  # Replace Ollama container with a minimal placeholder
+  # This satisfies the dependency requirement from worker-think while using native Ollama
+  ollama:
+    image: alpine:latest
+    container_name: openentity-ollama-placeholder
+    # Simple healthcheck that passes immediately
+    entrypoint: ["sh", "-c", "touch /tmp/ollama-ready && echo 'Using native Ollama on host' && sleep infinity"]
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/ollama-ready"]
+      interval: 1s
+      timeout: 1s
+      retries: 1
+      start_period: 1s
+    # Remove volumes - not needed for placeholder
+    volumes: []
+    # Remove environment - not needed for placeholder
+    environment: []
+    # Don't restart the placeholder
+    restart: "no"

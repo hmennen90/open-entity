@@ -1,4 +1,5 @@
 name: Release
+
 on:
   push:
     branches:
@@ -10,89 +11,27 @@ permissions:
   pull-requests: write
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  # Run all CI checks first
+  ci:
+    name: CI Checks
+    uses: ./.github/workflows/ci.yml
 
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: openentity_test
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+  # Run setup script tests
+  setup-tests:
+    name: Setup Tests
+    uses: ./.github/workflows/setup-test.yml
 
-      redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
-        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
+  # Run integration tests
+  integration:
+    name: Integration Tests
+    uses: ./.github/workflows/integration-test.yml
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.5'
-          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, redis
-          coverage: none
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Get Composer Cache Directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
-
-      - name: Copy Environment File
-        run: cp .env.example .env
-
-      - name: Install PHP Dependencies
-        env:
-          BROADCAST_DRIVER: log
-          REVERB_APP_ID: test
-          REVERB_APP_KEY: test
-          REVERB_APP_SECRET: test
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Install Node Dependencies
-        run: npm ci
-
-      - name: Build Assets
-        run: npm run build
-
-      - name: Generate Application Key
-        run: php artisan key:generate
-
-      - name: Run Tests
-        env:
-          DB_CONNECTION: mysql
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: openentity_test
-          DB_USERNAME: root
-          DB_PASSWORD: password
-          REDIS_HOST: 127.0.0.1
-          CACHE_DRIVER: redis
-          QUEUE_CONNECTION: sync
-        run: php artisan test
-
+  # Release only after all tests pass
   release:
-    needs: test
+    name: Semantic Release
+    needs: [ci, setup-tests, integration]
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout
@@ -108,6 +47,21 @@ jobs:
 
       - name: Install Dependencies
         run: npm install semantic-release @semantic-release/git @semantic-release/changelog @semantic-release/github
+
+      - name: Verify all tests passed
+        run: |
+          echo "✅ CI Checks: ${{ needs.ci.result }}"
+          echo "✅ Setup Tests: ${{ needs.setup-tests.result }}"
+          echo "✅ Integration Tests: ${{ needs.integration.result }}"
+
+          if [ "${{ needs.ci.result }}" != "success" ] || \
+             [ "${{ needs.setup-tests.result }}" != "success" ] || \
+             [ "${{ needs.integration.result }}" != "success" ]; then
+            echo "❌ Some tests failed, aborting release"
+            exit 1
+          fi
+
+          echo "✅ All tests passed, proceeding with release"
 
       - name: Semantic Release
         env:
