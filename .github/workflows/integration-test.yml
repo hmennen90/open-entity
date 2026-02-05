@@ -8,15 +8,57 @@ on:
   workflow_call:  # Allow this workflow to be called by other workflows
 
 jobs:
+  # Build Docker images once and share via artifacts
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create minimal .env for build
+        run: cp .env.example .env
+
+      - name: Build Docker images
+        run: docker compose build app nginx
+
+      - name: Save Docker images
+        run: |
+          docker save openentity-app openentity-nginx -o docker-images.tar
+          echo "Image size: $(du -h docker-images.tar | cut -f1)"
+
+      - name: Upload Docker images artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: docker-images.tar
+          retention-days: 1
+          compression-level: 0  # Already compressed
+
   # Docker Compose Integration Test
   docker-integration:
     name: Docker Compose Stack
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: build
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+
+      - name: Load Docker images
+        run: |
+          docker load -i docker-images.tar
+          rm docker-images.tar
+          echo "✅ Pre-built images loaded"
+          docker images | grep openentity
 
       - name: Create .env file
         run: |
@@ -41,10 +83,8 @@ jobs:
           # Also mark directory as safe for git
           git config --global --add safe.directory /var/www
 
-      - name: Build and start containers
+      - name: Start containers (using pre-built images)
         run: |
-          # Build containers first
-          docker compose build
           # Start without health-dependent services first
           docker compose up -d mysql redis ollama
           echo "Waiting for base services..."
@@ -132,7 +172,7 @@ jobs:
         if: always()
         run: docker compose down -v
 
-  # Ollama Native Integration Test
+  # Ollama Native Integration Test (no Docker app needed)
   ollama-native:
     name: Native Ollama Integration
     runs-on: ubuntu-latest
@@ -191,10 +231,23 @@ jobs:
     name: Native Ollama + Docker App
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: build
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+
+      - name: Load Docker images
+        run: |
+          docker load -i docker-images.tar
+          rm docker-images.tar
+          echo "✅ Pre-built images loaded"
+          docker images | grep openentity
 
       - name: Install Ollama natively
         run: |
@@ -250,10 +303,8 @@ jobs:
           # Set ownership to match container user (uid 1000)
           sudo chown -R 1000:1000 .
 
-      - name: Start Docker containers (without Ollama)
+      - name: Start Docker containers (using pre-built images)
         run: |
-          # Build containers first
-          docker compose -f docker-compose.yml -f docker-compose.native-ollama.yml build
           # Start base services first
           docker compose -f docker-compose.yml -f docker-compose.native-ollama.yml up -d mysql redis ollama
           echo "Waiting for base services..."
