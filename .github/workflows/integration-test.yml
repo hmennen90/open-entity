@@ -43,12 +43,20 @@ jobs:
 
       - name: Build and start containers
         run: |
-          docker compose up -d --build
-          echo "Waiting for containers to be healthy..."
+          # Build containers first
+          docker compose build
+          # Start without health-dependent services first
+          docker compose up -d mysql redis ollama
+          echo "Waiting for base services..."
+          sleep 20
+          # Then start app and other services
+          docker compose up -d
+          echo "Waiting for all containers to be healthy..."
 
       - name: Wait for app container
         run: |
-          timeout 300 bash -c 'until docker compose exec -T app php artisan --version; do sleep 5; done'
+          echo "Waiting for app to install dependencies and become healthy..."
+          timeout 300 bash -c 'until docker compose exec -T app php artisan --version 2>/dev/null; do echo "Waiting..."; sleep 10; done'
           echo "✅ App container is ready"
 
       - name: Wait for Ollama container
@@ -219,11 +227,20 @@ jobs:
 
       - name: Start Docker containers (without Ollama)
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.native-ollama.yml up -d --build
+          # Build containers first
+          docker compose -f docker-compose.yml -f docker-compose.native-ollama.yml build
+          # Start base services first
+          docker compose -f docker-compose.yml -f docker-compose.native-ollama.yml up -d mysql redis ollama
+          echo "Waiting for base services..."
+          sleep 20
+          # Then start app and other services
+          docker compose -f docker-compose.yml -f docker-compose.native-ollama.yml up -d
+          echo "Waiting for all containers to be healthy..."
 
       - name: Wait for app container
         run: |
-          timeout 300 bash -c 'until docker compose exec -T app php artisan --version; do sleep 5; done'
+          echo "Waiting for app to install dependencies and become healthy..."
+          timeout 300 bash -c 'until docker compose exec -T app php artisan --version 2>/dev/null; do echo "Waiting..."; sleep 10; done'
 
       - name: Test app can reach native Ollama
         run: |
