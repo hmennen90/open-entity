@@ -270,10 +270,18 @@ php artisan entity:wake                              # Wake up
 php artisan entity:sleep                             # Put to sleep
 php artisan entity:status                            # Show status
 php artisan entity:think                             # Single think cycle
-php artisan entity:think --continuous --interval=30  # Continuous loop
+php artisan entity:think --continuous                # Continuous loop (default 30s)
+php artisan entity:think --continuous --adaptive     # Adaptive interval (fast when idle)
+php artisan entity:think --continuous --interval=10  # Fixed custom interval
 php artisan entity:import-memories                   # Import memories from files
 php artisan entity:import-memories --fresh           # Reset and import
 ```
+
+### Adaptive Think Mode
+With `--adaptive`, the entity thinks faster when idle (no conversation) and slower during active chats:
+- **Idle interval**: 5 seconds (configurable via `ENTITY_THINK_IDLE_INTERVAL`)
+- **Active interval**: 60 seconds (configurable via `ENTITY_THINK_ACTIVE_INTERVAL`)
+- **Activity timeout**: 120 seconds until considered idle (configurable via `ENTITY_ACTIVITY_TIMEOUT`)
 
 ## Tests
 

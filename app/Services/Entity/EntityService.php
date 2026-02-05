@@ -27,6 +27,7 @@ class EntityService
     private const STATUS_CACHE_KEY = 'entity:status';
     private const LAST_THOUGHT_CACHE_KEY = 'entity:last_thought_at';
     private const STARTED_AT_CACHE_KEY = 'entity:started_at';
+    private const LAST_ACTIVITY_CACHE_KEY = 'entity:last_activity_at';
 
     public function __construct(
         private MindService $mindService,
@@ -272,6 +273,9 @@ PROMPT;
      */
     public function chat(Conversation $conversation, string $message): array
     {
+        // Track activity for dynamic think interval
+        $this->trackActivity();
+
         // Get user's preferred language
         $lang = $this->mindService->getUserLanguage();
 
@@ -638,6 +642,58 @@ PROMPT;
     public function getLastThoughtAt(): ?string
     {
         return Cache::get(self::LAST_THOUGHT_CACHE_KEY);
+    }
+
+    /**
+     * Track activity (conversation, interaction).
+     */
+    public function trackActivity(): void
+    {
+        Cache::put(self::LAST_ACTIVITY_CACHE_KEY, now()->toIso8601String(), 86400);
+    }
+
+    /**
+     * Get last activity timestamp.
+     */
+    public function getLastActivityAt(): ?string
+    {
+        return Cache::get(self::LAST_ACTIVITY_CACHE_KEY);
+    }
+
+    /**
+     * Check if the entity is currently idle (no recent activity).
+     */
+    public function isIdle(): bool
+    {
+        $lastActivity = $this->getLastActivityAt();
+
+        if (!$lastActivity) {
+            return true;
+        }
+
+        $timeout = config('entity.think.activity_timeout', 120);
+        $secondsSinceActivity = now()->diffInSeconds($lastActivity);
+
+        return $secondsSinceActivity >= $timeout;
+    }
+
+    /**
+     * Get dynamic think interval based on activity state.
+     *
+     * Returns shorter interval when idle, longer when in active conversation.
+     */
+    public function getThinkInterval(): int
+    {
+        // Legacy support: if new config doesn't exist, use old think_interval
+        if (!config('entity.think.idle_interval')) {
+            return config('entity.think_interval', 30);
+        }
+
+        if ($this->isIdle()) {
+            return config('entity.think.idle_interval', 5);
+        }
+
+        return config('entity.think.active_interval', 60);
     }
 
     /**

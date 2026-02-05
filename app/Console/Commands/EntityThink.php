@@ -6,13 +6,14 @@ use App\Services\Entity\EntityService;
 use Illuminate\Console\Command;
 
 /**
- * Think Command - Executes a single think cycle.
+ * Think Command - Executes a single think cycle or continuous thinking.
  */
 class EntityThink extends Command
 {
     protected $signature = 'entity:think
                             {--continuous : Run continuously instead of once}
-                            {--interval=30 : Interval between cycles in seconds}';
+                            {--adaptive : Use dynamic interval based on activity (faster when idle)}
+                            {--interval= : Fixed interval between cycles in seconds (overrides adaptive)}';
 
     protected $description = 'Execute the think loop of the entity';
 
@@ -25,10 +26,9 @@ class EntityThink extends Command
     public function handle(): int
     {
         $continuous = $this->option('continuous');
-        $interval = (int) $this->option('interval');
 
         if ($continuous) {
-            return $this->runContinuously($interval);
+            return $this->runContinuously();
         }
 
         return $this->runOnce();
@@ -61,12 +61,30 @@ class EntityThink extends Command
     }
 
     /**
-     * Continuous think loop.
+     * Continuous think loop with optional adaptive intervals.
      */
-    private function runContinuously(int $interval): int
+    private function runContinuously(): int
     {
-        $this->info("Starting continuous think loop (interval: {$interval}s)");
+        $useAdaptive = $this->option('adaptive');
+        $fixedInterval = $this->option('interval');
+
+        // Determine interval mode
+        if ($fixedInterval !== null) {
+            $interval = (int) $fixedInterval;
+            $this->info("Starting continuous think loop (fixed interval: {$interval}s)");
+        } elseif ($useAdaptive) {
+            $this->info('Starting continuous think loop (adaptive interval)');
+            $this->info('  - Idle: ' . config('entity.think.idle_interval', 5) . 's');
+            $this->info('  - Active: ' . config('entity.think.active_interval', 60) . 's');
+            $this->info('  - Activity timeout: ' . config('entity.think.activity_timeout', 120) . 's');
+        } else {
+            // Default to legacy interval
+            $interval = config('entity.think_interval', 30);
+            $this->info("Starting continuous think loop (interval: {$interval}s)");
+        }
+
         $this->info('Press Ctrl+C to stop');
+        $this->newLine();
 
         // Wake the entity if sleeping
         if ($this->entityService->getStatus() !== 'awake') {
@@ -78,7 +96,24 @@ class EntityThink extends Command
 
         while (true) {
             $cycleCount++;
-            $this->line("--- Think Cycle #{$cycleCount} ---");
+
+            // Get current interval (dynamic if adaptive mode)
+            if ($fixedInterval !== null) {
+                $currentInterval = (int) $fixedInterval;
+            } elseif ($useAdaptive) {
+                $currentInterval = $this->entityService->getThinkInterval();
+                $isIdle = $this->entityService->isIdle();
+                $mode = $isIdle ? 'idle' : 'active';
+            } else {
+                $currentInterval = config('entity.think_interval', 30);
+            }
+
+            // Show cycle header with mode info
+            if ($useAdaptive && $fixedInterval === null) {
+                $this->line("--- Think Cycle #{$cycleCount} [{$mode}, {$currentInterval}s] ---");
+            } else {
+                $this->line("--- Think Cycle #{$cycleCount} ---");
+            }
 
             $thought = $this->entityService->think();
 
@@ -92,8 +127,9 @@ class EntityThink extends Command
                 $this->warn('No thought generated');
             }
 
-            $this->line("Next cycle in {$interval} seconds...\n");
-            sleep($interval);
+            $this->line("Next cycle in {$currentInterval} seconds...");
+            $this->newLine();
+            sleep($currentInterval);
         }
 
         return self::SUCCESS;

@@ -20,7 +20,19 @@ return [
     // Language for thoughts, memories, and system prompts (de/en)
     'language' => env('ENTITY_LANGUAGE', 'de'),
 
-    // Think loop interval in seconds
+    // Think loop configuration
+    'think' => [
+        // Interval when idle (no recent conversation)
+        'idle_interval' => (int) env('ENTITY_THINK_IDLE_INTERVAL', 5),
+
+        // Interval during active conversation
+        'active_interval' => (int) env('ENTITY_THINK_ACTIVE_INTERVAL', 60),
+
+        // Seconds of inactivity before considered "idle"
+        'activity_timeout' => (int) env('ENTITY_ACTIVITY_TIMEOUT', 120),
+    ],
+
+    // Legacy support - deprecated, use think.idle_interval instead
     'think_interval' => (int) env('ENTITY_THINK_INTERVAL', 30),
 
     // Storage path for Mind & Memory
