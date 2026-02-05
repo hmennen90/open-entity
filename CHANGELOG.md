@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/hmennen90/open-entity/compare/v1.0.1...v1.0.2) (2026-02-05)
+
+
+### Bug Fixes
+
+* add REVERB_SERVER_HOST for Docker container-to-container communication ([2a4d0ca](https://github.com/hmennen90/open-entity/commit/2a4d0caf5532c329da76c2c5befb23ec1350cf9d))
+
 ## [1.0.1](https://github.com/hmennen90/open-entity/compare/v1.0.0...v1.0.1) (2026-02-05)
 
 
