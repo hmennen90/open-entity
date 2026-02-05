@@ -28,14 +28,18 @@ jobs:
           echo "OLLAMA_MODEL=tinyllama" >> .env
           echo "OLLAMA_SKIP_PULL=false" >> .env
 
-      - name: Prepare storage directories
+      - name: Prepare for Docker
         run: |
           # Create directories and set permissions for Docker container user (uid 1000)
           mkdir -p storage/framework/{sessions,views,cache}
           mkdir -p storage/logs
           mkdir -p storage/entity/{mind,memory,social,goals,tools}
           mkdir -p bootstrap/cache
-          chmod -R 777 storage bootstrap/cache
+          mkdir -p vendor
+          # Set ownership to match container user (uid 1000)
+          sudo chown -R 1000:1000 .
+          # Also mark directory as safe for git
+          git config --global --add safe.directory /var/www
 
       - name: Build and start containers
         run: |
@@ -202,14 +206,16 @@ jobs:
 
           cat .env | grep -E "OLLAMA|COMPOSE"
 
-      - name: Prepare storage directories
+      - name: Prepare for Docker
         run: |
           # Create directories and set permissions for Docker container user (uid 1000)
           mkdir -p storage/framework/{sessions,views,cache}
           mkdir -p storage/logs
           mkdir -p storage/entity/{mind,memory,social,goals,tools}
           mkdir -p bootstrap/cache
-          chmod -R 777 storage bootstrap/cache
+          mkdir -p vendor
+          # Set ownership to match container user (uid 1000)
+          sudo chown -R 1000:1000 .
 
       - name: Start Docker containers (without Ollama)
         run: |

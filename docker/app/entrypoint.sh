@@ -3,6 +3,9 @@ set -e
 
 cd /var/www
 
+# Mark directory as safe for git (fixes dubious ownership warning)
+git config --global --add safe.directory /var/www 2>/dev/null || true
+
 # CONTAINER_ROLE bestimmt das Verhalten:
 # - "app": Installiert Dependencies, führt Migrationen aus
 # - "worker": Wartet nur auf Dependencies
