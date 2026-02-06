@@ -75,13 +75,12 @@ class WebTool implements ToolInterface
             $errors[] = 'url must be a valid URL';
         }
 
-        // Block local URLs for security reasons
+        // Block local/private URLs for security reasons
         if (isset($params['url'])) {
             $host = parse_url($params['url'], PHP_URL_HOST);
-            if (in_array($host, ['localhost', '127.0.0.1', '0.0.0.0']) ||
-                str_starts_with($host ?? '', '192.168.') ||
-                str_starts_with($host ?? '', '10.') ||
-                str_starts_with($host ?? '', '172.')) {
+            if ($host === null || $host === '') {
+                $errors[] = 'URL must contain a valid host';
+            } elseif ($this->isPrivateHost($host)) {
                 $errors[] = 'Local/private network URLs are not allowed';
             }
         }
@@ -141,6 +140,37 @@ class WebTool implements ToolInterface
                 ],
             ];
         }
+    }
+
+    /**
+     * Check if a hostname resolves to a private/local IP address.
+     */
+    private function isPrivateHost(string $host): bool
+    {
+        // Check common private hostnames
+        $privateHosts = ['localhost', '0.0.0.0', '[::1]'];
+        if (in_array(strtolower($host), $privateHosts)) {
+            return true;
+        }
+
+        // Resolve hostname to IP and check if it's private
+        $ips = gethostbynamel($host);
+        if ($ips === false) {
+            // Also check for IPv6 literal
+            $cleanHost = trim($host, '[]');
+            if (filter_var($cleanHost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                return !filter_var($cleanHost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
+            }
+            return false;
+        }
+
+        foreach ($ips as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -341,7 +341,8 @@ CONTEXT;
 
         file_put_contents(
             "{$this->storagePath}/interests.json",
-            json_encode($this->interests, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+            json_encode($this->interests, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+            LOCK_EX
         );
     }
 
@@ -372,7 +373,8 @@ CONTEXT;
 
         file_put_contents(
             "{$this->storagePath}/opinions.json",
-            json_encode($this->opinions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+            json_encode($this->opinions, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+            LOCK_EX
         );
     }
 
@@ -396,7 +398,7 @@ CONTEXT;
             'trigger' => $thought->trigger,
             'intensity' => $thought->intensity,
             'timestamp' => now()->toIso8601String(),
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
     }
 
     /**
@@ -412,7 +414,7 @@ CONTEXT;
 
         $formatted = "";
         foreach ($goals as $goal) {
-            $progress = round($goal->progress * 100);
+            $progress = round($goal->progress);
             if ($lang === 'de') {
                 $formatted .= "- {$goal->title} ({$progress}% Fortschritt)\n";
                 $formatted .= "  Motivation: {$goal->motivation}\n";

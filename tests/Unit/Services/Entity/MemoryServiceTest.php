@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\Entity;
 use App\Services\Entity\MemoryService;
 use App\Models\Memory;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class MemoryServiceTest extends TestCase
@@ -19,7 +20,7 @@ class MemoryServiceTest extends TestCase
         $this->memoryService = new MemoryService();
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_memories(): void
     {
         $memory = $this->memoryService->create([
@@ -35,7 +36,7 @@ class MemoryServiceTest extends TestCase
         $this->assertDatabaseHas('memories', ['id' => $memory->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_memories_with_context(): void
     {
         $memory = $this->memoryService->create([
@@ -54,7 +55,7 @@ class MemoryServiceTest extends TestCase
         ], $memory->context);
     }
 
-    /** @test */
+    #[Test]
     public function it_retrieves_recent_memories(): void
     {
         for ($i = 1; $i <= 10; $i++) {
@@ -70,7 +71,7 @@ class MemoryServiceTest extends TestCase
         $this->assertCount(5, $recent);
     }
 
-    /** @test */
+    #[Test]
     public function it_filters_memories_by_type(): void
     {
         $this->memoryService->create([
@@ -99,7 +100,7 @@ class MemoryServiceTest extends TestCase
         $this->assertEquals('An experience', $experiences->first()->content);
     }
 
-    /** @test */
+    #[Test]
     public function it_retrieves_important_memories(): void
     {
         $this->memoryService->create([
@@ -126,7 +127,7 @@ class MemoryServiceTest extends TestCase
         $this->assertEquals('Important memory', $important->first()->content);
     }
 
-    /** @test */
+    #[Test]
     public function it_searches_memories_by_content(): void
     {
         $this->memoryService->create([
@@ -152,7 +153,7 @@ class MemoryServiceTest extends TestCase
         $this->assertCount(2, $results);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_learned_memory(): void
     {
         $memory = $this->memoryService->createLearned(
@@ -164,7 +165,7 @@ class MemoryServiceTest extends TestCase
         $this->assertGreaterThanOrEqual(0.5, $memory->importance);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_experience_memory(): void
     {
         $memory = $this->memoryService->createExperience(
@@ -175,7 +176,7 @@ class MemoryServiceTest extends TestCase
         $this->assertEquals('experience', $memory->type);
     }
 
-    /** @test */
+    #[Test]
     public function memory_types_are_valid(): void
     {
         $validTypes = ['experience', 'learned', 'conversation', 'observation'];
@@ -191,7 +192,7 @@ class MemoryServiceTest extends TestCase
         }
     }
 
-    /** @test */
+    #[Test]
     public function it_handles_memory_decay(): void
     {
         // Erstelle alte Memory mit Factory (respektiert created_at)
@@ -219,7 +220,7 @@ class MemoryServiceTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function it_formats_memories_for_context(): void
     {
         $this->memoryService->create([

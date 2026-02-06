@@ -216,7 +216,6 @@ class GoalTool implements ToolInterface
             'note' => $progressNote,
             'progress' => $goal->progress,
         ];
-        $goal->progress_notes = $notes;
 
         // Auto-complete if progress reaches 100
         if ($goal->progress >= 100 && $goal->status === 'active') {
@@ -226,8 +225,9 @@ class GoalTool implements ToolInterface
                 'date' => now()->toIso8601String(),
                 'note' => 'Goal automatically completed (100% progress)',
             ];
-            $goal->progress_notes = $notes;
         }
+
+        $goal->progress_notes = $this->capProgressNotes($notes);
 
         // Add learning if provided
         if (!empty($params['learning'])) {
@@ -286,7 +286,24 @@ class GoalTool implements ToolInterface
             'content' => $learning,
             'progress_at_time' => $goal->progress,
         ];
+
+        // Cap learnings to prevent unbounded growth
+        if (count($learnings) > 100) {
+            $learnings = array_slice($learnings, -100);
+        }
+
         $goal->learnings = $learnings;
+    }
+
+    /**
+     * Cap progress notes array to prevent unbounded growth.
+     */
+    private function capProgressNotes(array $notes, int $maxNotes = 200): array
+    {
+        if (count($notes) > $maxNotes) {
+            return array_slice($notes, -$maxNotes);
+        }
+        return $notes;
     }
 
     /**
@@ -333,7 +350,7 @@ class GoalTool implements ToolInterface
             'date' => now()->toIso8601String(),
             'note' => $params['progress_note'] ?? 'Goal completed',
         ];
-        $goal->progress_notes = $notes;
+        $goal->progress_notes = $this->capProgressNotes($notes);
 
         // Add final learning if provided
         if (!empty($params['learning'])) {
@@ -374,7 +391,7 @@ class GoalTool implements ToolInterface
             'date' => now()->toIso8601String(),
             'note' => "Goal abandoned: {$reason}",
         ];
-        $goal->progress_notes = $notes;
+        $goal->progress_notes = $this->capProgressNotes($notes);
 
         // Add learning even when abandoning (learned what didn't work)
         if (!empty($params['learning'])) {

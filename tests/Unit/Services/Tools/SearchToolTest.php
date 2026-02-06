@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Tools;
 
 use App\Services\Tools\BuiltIn\SearchTool;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class SearchToolTest extends TestCase
@@ -15,13 +16,13 @@ class SearchToolTest extends TestCase
         $this->searchTool = new SearchTool();
     }
 
-    /** @test */
+    #[Test]
     public function it_has_correct_name(): void
     {
         $this->assertEquals('search', $this->searchTool->name());
     }
 
-    /** @test */
+    #[Test]
     public function it_has_description(): void
     {
         $description = $this->searchTool->description();
@@ -29,7 +30,7 @@ class SearchToolTest extends TestCase
         $this->assertStringContainsString('DuckDuckGo', $description);
     }
 
-    /** @test */
+    #[Test]
     public function it_defines_required_parameters(): void
     {
         $params = $this->searchTool->parameters();
@@ -39,7 +40,7 @@ class SearchToolTest extends TestCase
         $this->assertContains('query', $params['required']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_empty_query(): void
     {
         $result = $this->searchTool->validate(['query' => '']);
@@ -48,7 +49,7 @@ class SearchToolTest extends TestCase
         $this->assertContains('query is required', $result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_short_query(): void
     {
         $result = $this->searchTool->validate(['query' => 'a']);
@@ -57,7 +58,7 @@ class SearchToolTest extends TestCase
         $this->assertContains('query must be at least 2 characters', $result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_long_query(): void
     {
         $result = $this->searchTool->validate(['query' => str_repeat('a', 501)]);
@@ -66,7 +67,7 @@ class SearchToolTest extends TestCase
         $this->assertContains('query must not exceed 500 characters', $result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_max_results_range(): void
     {
         $result = $this->searchTool->validate(['query' => 'test', 'max_results' => 15]);
@@ -75,7 +76,7 @@ class SearchToolTest extends TestCase
         $this->assertContains('max_results must be between 1 and 10', $result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_defines_fetch_pages_parameter(): void
     {
         $params = $this->searchTool->parameters();
@@ -84,7 +85,7 @@ class SearchToolTest extends TestCase
         $this->assertEquals('boolean', $params['properties']['fetch_pages']['type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_max_results_with_fetch_pages(): void
     {
         $result = $this->searchTool->validate([
@@ -97,7 +98,7 @@ class SearchToolTest extends TestCase
         $this->assertContains('max_results cannot exceed 5 when fetch_pages is enabled', $result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_accepts_valid_fetch_pages_parameters(): void
     {
         $result = $this->searchTool->validate([
@@ -110,7 +111,7 @@ class SearchToolTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_accepts_valid_parameters(): void
     {
         $result = $this->searchTool->validate([
@@ -122,7 +123,7 @@ class SearchToolTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_executes_search_and_returns_results(): void
     {
         // Skip in CI to avoid rate limiting

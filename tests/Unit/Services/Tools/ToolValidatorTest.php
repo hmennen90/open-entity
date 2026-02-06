@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Tools;
 
 use App\Services\Tools\ToolValidator;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ToolValidatorTest extends TestCase
@@ -15,7 +16,7 @@ class ToolValidatorTest extends TestCase
         $this->validator = new ToolValidator();
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_correct_php_syntax(): void
     {
         $validCode = <<<'PHP'
@@ -33,7 +34,7 @@ PHP;
         $this->assertEmpty($result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_syntax_errors(): void
     {
         $invalidCode = <<<'PHP'
@@ -51,7 +52,7 @@ PHP;
         $this->assertNotEmpty($result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_tool_interface_implementation(): void
     {
         $validTool = <<<'PHP'
@@ -76,7 +77,7 @@ PHP;
         $this->assertEmpty($result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_missing_interface_declaration(): void
     {
         $noInterface = <<<'PHP'
@@ -97,7 +98,7 @@ PHP;
         $this->assertContains('Class must implement ToolInterface', $result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_missing_required_methods(): void
     {
         $missingMethods = <<<'PHP'
@@ -120,7 +121,7 @@ PHP;
         $this->assertContains('Missing required method: execute()', $result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_eval_function(): void
     {
         $dangerousCode = <<<'PHP'
@@ -140,7 +141,7 @@ PHP;
         $this->assertNotEmpty(array_filter($result['errors'], fn($e) => str_contains($e, 'eval')));
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_exec_function(): void
     {
         $dangerousCode = <<<'PHP'
@@ -159,7 +160,7 @@ PHP;
         $this->assertNotEmpty(array_filter($result['errors'], fn($e) => str_contains($e, 'exec')));
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_shell_exec_function(): void
     {
         $dangerousCode = <<<'PHP'
@@ -178,7 +179,7 @@ PHP;
         $this->assertNotEmpty(array_filter($result['errors'], fn($e) => str_contains($e, 'shell_exec')));
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_system_function(): void
     {
         $dangerousCode = <<<'PHP'
@@ -196,7 +197,7 @@ PHP;
         $this->assertFalse($result['valid']);
     }
 
-    /** @test */
+    #[Test]
     public function it_warns_about_file_operations(): void
     {
         $riskyCode = <<<'PHP'
@@ -215,7 +216,7 @@ PHP;
         $this->assertNotEmpty($result['warnings']);
     }
 
-    /** @test */
+    #[Test]
     public function it_allows_safe_code(): void
     {
         $safeCode = <<<'PHP'
@@ -243,7 +244,7 @@ PHP;
         $this->assertEquals('passed', $result['stage']);
     }
 
-    /** @test */
+    #[Test]
     public function full_validation_stops_at_first_failure(): void
     {
         $syntaxError = <<<'PHP'

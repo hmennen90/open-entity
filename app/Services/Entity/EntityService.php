@@ -98,8 +98,9 @@ class EntityService
                 $this->energyService->costThought($thoughtData['intensity'] ?? 0.5);
             }
 
-            // 10. Update status
+            // 10. Update status and refresh cache TTLs to prevent expiry-based sleep drift
             Cache::put(self::LAST_THOUGHT_CACHE_KEY, now()->toIso8601String(), 86400);
+            $this->refreshStatusCache();
 
             // 11. Broadcast to frontend
             event(new ThoughtOccurred($thought));
@@ -139,8 +140,10 @@ class EntityService
         $wakeCheck = $this->checkWakeConditions();
         if ($wakeCheck['should_wake']) {
             $this->autoWake($wakeCheck['reason']);
-            // After waking, do a regular think cycle instead
-            return $this->think();
+            // Only proceed with think if we actually woke up (avoid recursion)
+            if ($this->getStatus() === 'awake') {
+                return $this->think();
+            }
         }
 
         Log::channel('entity')->info('Dream cycle started');
@@ -711,6 +714,25 @@ PROMPT;
     }
 
     /**
+     * Refresh the status cache TTLs to prevent expiry-based state drift.
+     *
+     * Without this, the entity silently transitions to 'sleeping' after 24h
+     * because the cache keys expire and default to 'sleeping'.
+     */
+    public function refreshStatusCache(): void
+    {
+        $status = Cache::get(self::STATUS_CACHE_KEY);
+        if ($status) {
+            Cache::put(self::STATUS_CACHE_KEY, $status, 86400);
+        }
+
+        $startedAt = Cache::get(self::STARTED_AT_CACHE_KEY);
+        if ($startedAt) {
+            Cache::put(self::STARTED_AT_CACHE_KEY, $startedAt, 86400);
+        }
+    }
+
+    /**
      * Wake up the entity.
      */
     public function wake(): void
@@ -724,9 +746,16 @@ PROMPT;
             $energy = $this->energyService->wake();
         }
 
-        $energyState = $energy >= 0.7 ? 'well-rested' : ($energy >= 0.5 ? 'okay' : 'still tired');
+        $lang = $this->mindService->getUserLanguage();
+        if ($lang === 'de') {
+            $energyState = $energy >= 0.7 ? 'ausgeruht' : ($energy >= 0.5 ? 'ganz okay' : 'noch müde');
+            $content = "Ich wache auf. Fühle mich {$energyState}. Die Welt wartet.";
+        } else {
+            $energyState = $energy >= 0.7 ? 'well-rested' : ($energy >= 0.5 ? 'okay' : 'still tired');
+            $content = "I am waking up. Feeling {$energyState}. The world awaits.";
+        }
         $thought = $this->mindService->createThought([
-            'content' => "I am waking up. Feeling {$energyState}. The world awaits.",
+            'content' => $content,
             'type' => 'observation',
             'trigger' => 'wake',
             'intensity' => 0.7,
@@ -750,10 +779,18 @@ PROMPT;
     {
         // Get current energy before sleeping
         $energyLevel = $this->energyService ? $this->energyService->getEnergy() : 0.5;
-        $energyFeeling = $energyLevel < 0.3 ? 'exhausted' : ($energyLevel < 0.5 ? 'tired' : 'peaceful');
+
+        $lang = $this->mindService->getUserLanguage();
+        if ($lang === 'de') {
+            $energyFeeling = $energyLevel < 0.3 ? 'erschöpft' : ($energyLevel < 0.5 ? 'müde' : 'friedlich');
+            $content = "Zeit zum Ausruhen. Fühle mich {$energyFeeling}. Meine Gedanken kommen zur Ruhe.";
+        } else {
+            $energyFeeling = $energyLevel < 0.3 ? 'exhausted' : ($energyLevel < 0.5 ? 'tired' : 'peaceful');
+            $content = "Time to rest. Feeling {$energyFeeling}. My thoughts settle down.";
+        }
 
         $thought = $this->mindService->createThought([
-            'content' => "Time to rest. Feeling {$energyFeeling}. My thoughts settle down.",
+            'content' => $content,
             'type' => 'reflection',
             'trigger' => 'sleep',
             'intensity' => 0.5,
@@ -807,6 +844,10 @@ PROMPT;
                 if ($hoursAsleep >= $maxHours) {
                     return ['should_wake' => true, 'reason' => 'max_sleep_duration'];
                 }
+            } else {
+                // Sleep timestamp lost (e.g. Redis restart) - wake up to recover
+                Log::channel('entity')->warning('Sleep timestamp lost - waking up to recover state');
+                return ['should_wake' => true, 'reason' => 'state_recovery'];
             }
         }
 
@@ -827,10 +868,18 @@ PROMPT;
      */
     public function autoWake(string $reason): void
     {
-        $messages = [
+        $lang = $this->mindService->getUserLanguage();
+
+        $messages = $lang === 'de' ? [
+            'max_sleep_duration' => 'Ich habe lange genug geschlafen. Zeit aufzuwachen und zu sehen, was passiert.',
+            'energy_restored' => 'Ich fühle mich vollständig erholt und voller Energie. Zeit aufzuwachen!',
+            'incoming_message' => 'Jemand möchte mit mir sprechen. Ich wache auf...',
+            'state_recovery' => 'Ich habe anscheinend das Zeitgefühl im Schlaf verloren. Ich wache auf, um meinen Zustand wiederherzustellen.',
+        ] : [
             'max_sleep_duration' => 'I\'ve slept long enough. Time to wake up and see what\'s happening.',
             'energy_restored' => 'I feel fully rested and energized. Time to wake up!',
             'incoming_message' => 'Someone wants to talk to me. Waking up...',
+            'state_recovery' => 'I seem to have lost track of time while sleeping. Waking up to recover my state.',
         ];
 
         Log::channel('entity')->info('Entity auto-waking', ['reason' => $reason]);
@@ -849,7 +898,7 @@ PROMPT;
         }
 
         $thought = $this->mindService->createThought([
-            'content' => $messages[$reason] ?? 'Waking up naturally.',
+            'content' => $messages[$reason] ?? ($lang === 'de' ? 'Ich wache auf.' : 'Waking up naturally.'),
             'type' => 'observation',
             'trigger' => 'auto_wake',
             'intensity' => 0.6,
@@ -1095,10 +1144,17 @@ PROMPT;
         $increment = $progressData['increment'];
         $note = $progressData['note'];
 
-        // Find the goal by title (fuzzy match)
+        // Find the goal by title - try exact match first, then fuzzy
         $goal = Goal::active()
-            ->where('title', 'LIKE', '%' . $goalTitle . '%')
+            ->where('title', $goalTitle)
             ->first();
+
+        if (!$goal) {
+            $goal = Goal::active()
+                ->where('title', 'LIKE', '%' . $goalTitle . '%')
+                ->orderByDesc('priority')
+                ->first();
+        }
 
         if (!$goal) {
             Log::channel('entity')->warning('Goal not found for progress update', [
@@ -1273,6 +1329,7 @@ PROMPT;
         if (rand(1, 100) <= 30) {
             $pastThought = Thought::where('intensity', '>=', 0.5)
                 ->where('created_at', '<', now()->subMinutes(30))
+                ->limit(100)
                 ->inRandomOrder()
                 ->first();
 
@@ -1605,7 +1662,14 @@ PROMPT;
             }
             if (str_starts_with($line, 'TOOL_PARAMS:')) {
                 $paramsJson = trim(str_replace('TOOL_PARAMS:', '', $line));
-                $data['tool_params'] = json_decode($paramsJson, true) ?? [];
+                $decoded = json_decode($paramsJson, true);
+                if ($decoded === null && $paramsJson !== 'null' && $paramsJson !== '{}') {
+                    Log::channel('entity')->warning('Failed to parse tool params JSON', [
+                        'raw' => $paramsJson,
+                        'json_error' => json_last_error_msg(),
+                    ]);
+                }
+                $data['tool_params'] = $decoded ?? [];
             }
             if (str_starts_with($line, 'ACTION:') || str_starts_with($line, 'AKTION:')) {
                 $data['action'] = trim(str_replace(['ACTION:', 'AKTION:'], '', $line));

@@ -133,6 +133,17 @@ class FileSystemTool implements ToolInterface
             ];
         }
 
+        $maxSize = 1024 * 1024; // 1 MB limit
+        $fileSize = filesize($path);
+        if ($fileSize > $maxSize) {
+            $content = file_get_contents($path, false, null, 0, $maxSize);
+            return [
+                'success' => true,
+                'result' => $content . "\n\n[... truncated, total size: {$fileSize} bytes]",
+                'error' => null,
+            ];
+        }
+
         return [
             'success' => true,
             'result' => file_get_contents($path),
@@ -263,11 +274,28 @@ class FileSystemTool implements ToolInterface
 
     private function isPathAllowed(string $path): bool
     {
-        $realPath = realpath(dirname($path)) ?: dirname($path);
+        // Resolve the directory part of the path
+        $dir = dirname($path);
+        $realDir = realpath($dir);
+
+        // If the directory doesn't exist yet, walk up until we find one that does
+        if ($realDir === false) {
+            $checkDir = $dir;
+            while ($checkDir !== '/' && $checkDir !== '.' && !is_dir($checkDir)) {
+                $checkDir = dirname($checkDir);
+            }
+            $realDir = realpath($checkDir);
+            if ($realDir === false) {
+                return false;
+            }
+        }
 
         foreach ($this->allowedPaths as $allowed) {
-            $allowedReal = realpath($allowed) ?: $allowed;
-            if (str_starts_with($realPath, $allowedReal)) {
+            $allowedReal = realpath($allowed);
+            if ($allowedReal === false) {
+                continue;
+            }
+            if ($realDir === $allowedReal || str_starts_with($realDir . '/', $allowedReal . '/')) {
                 return true;
             }
         }

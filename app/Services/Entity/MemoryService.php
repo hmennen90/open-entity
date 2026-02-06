@@ -285,7 +285,8 @@ class MemoryService
             mkdir($dir, 0755, true);
         }
 
-        $filename = $dir . '/' . $memory->created_at->format('Y-m-d_H-i-s') . "_{$memory->id}.json";
+        $timestamp = ($memory->created_at ?? now())->format('Y-m-d_H-i-s');
+        $filename = $dir . '/' . $timestamp . "_{$memory->id}.json";
 
         file_put_contents($filename, json_encode([
             'id' => $memory->id,
@@ -296,7 +297,7 @@ class MemoryService
             'emotional_valence' => $memory->emotional_valence,
             'context' => $memory->context,
             'related_entity' => $memory->related_entity,
-            'created_at' => $memory->created_at->toIso8601String(),
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            'created_at' => ($memory->created_at ?? now())->toIso8601String(),
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);
     }
 }

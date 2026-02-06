@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\Tools;
 use App\Models\Goal;
 use App\Services\Tools\BuiltIn\GoalTool;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class GoalToolTest extends TestCase
@@ -19,13 +20,13 @@ class GoalToolTest extends TestCase
         $this->goalTool = new GoalTool();
     }
 
-    /** @test */
+    #[Test]
     public function it_has_correct_name(): void
     {
         $this->assertEquals('goal', $this->goalTool->name());
     }
 
-    /** @test */
+    #[Test]
     public function it_has_description(): void
     {
         $description = $this->goalTool->description();
@@ -33,7 +34,7 @@ class GoalToolTest extends TestCase
         $this->assertStringContainsString('duplicate', strtolower($description));
     }
 
-    /** @test */
+    #[Test]
     public function it_defines_correct_parameters(): void
     {
         $params = $this->goalTool->parameters();
@@ -49,7 +50,7 @@ class GoalToolTest extends TestCase
         $this->assertEquals(['action'], $params['required']);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_a_goal(): void
     {
         $result = $this->goalTool->execute([
@@ -72,7 +73,7 @@ class GoalToolTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_title_for_create(): void
     {
         $result = $this->goalTool->execute([
@@ -83,13 +84,14 @@ class GoalToolTest extends TestCase
         $this->assertStringContainsString('Title is required', $result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_detects_similar_goals_on_create(): void
     {
         // Create first goal
         Goal::factory()->create([
             'title' => 'Learn PHP Programming',
             'status' => 'active',
+            'progress' => 50,
         ]);
 
         // Try to create similar goal
@@ -104,13 +106,14 @@ class GoalToolTest extends TestCase
         $this->assertArrayHasKey('suggestions', $result);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_goal_with_force_create_even_if_similar_exists(): void
     {
         // Create first goal
         Goal::factory()->create([
             'title' => 'Learn PHP Programming',
             'status' => 'active',
+            'progress' => 50,
         ]);
 
         // Force create similar goal
@@ -124,7 +127,7 @@ class GoalToolTest extends TestCase
         $this->assertEquals('Learn PHP', $result['goal']['title']);
     }
 
-    /** @test */
+    #[Test]
     public function it_updates_goal_progress(): void
     {
         $goal = Goal::factory()->create([
@@ -148,7 +151,7 @@ class GoalToolTest extends TestCase
         $this->assertEquals(50, $goal->progress);
     }
 
-    /** @test */
+    #[Test]
     public function it_auto_completes_goal_at_100_progress(): void
     {
         $goal = Goal::factory()->create([
@@ -173,12 +176,12 @@ class GoalToolTest extends TestCase
         $this->assertNotNull($goal->completed_at);
     }
 
-    /** @test */
+    #[Test]
     public function it_finds_similar_goals(): void
     {
-        Goal::factory()->create(['title' => 'Learn PHP', 'status' => 'active']);
-        Goal::factory()->create(['title' => 'Learn JavaScript', 'status' => 'active']);
-        Goal::factory()->create(['title' => 'Master PHP', 'status' => 'active']);
+        Goal::factory()->create(['title' => 'Learn PHP', 'status' => 'active', 'progress' => 50]);
+        Goal::factory()->create(['title' => 'Learn JavaScript', 'status' => 'active', 'progress' => 30]);
+        Goal::factory()->create(['title' => 'Master PHP', 'status' => 'active', 'progress' => 20]);
 
         $result = $this->goalTool->execute([
             'action' => 'find_similar',
@@ -189,7 +192,7 @@ class GoalToolTest extends TestCase
         $this->assertGreaterThanOrEqual(1, $result['count']);
     }
 
-    /** @test */
+    #[Test]
     public function it_completes_a_goal(): void
     {
         $goal = Goal::factory()->create([
@@ -211,7 +214,7 @@ class GoalToolTest extends TestCase
         $this->assertNotNull($goal->completed_at);
     }
 
-    /** @test */
+    #[Test]
     public function it_abandons_a_goal_with_reason(): void
     {
         $goal = Goal::factory()->create([
@@ -230,11 +233,11 @@ class GoalToolTest extends TestCase
         $this->assertEquals('No longer interested', $result['goal']['abandoned_reason']);
     }
 
-    /** @test */
+    #[Test]
     public function it_lists_goals(): void
     {
-        Goal::factory()->count(3)->create(['status' => 'active']);
-        Goal::factory()->count(2)->create(['status' => 'completed']);
+        Goal::factory()->count(3)->create(['status' => 'active', 'progress' => 50]);
+        Goal::factory()->count(2)->create(['status' => 'completed', 'progress' => 100]);
 
         $result = $this->goalTool->execute([
             'action' => 'list',
@@ -244,11 +247,11 @@ class GoalToolTest extends TestCase
         $this->assertEquals(5, $result['count']);
     }
 
-    /** @test */
+    #[Test]
     public function it_lists_goals_filtered_by_status(): void
     {
-        Goal::factory()->count(3)->create(['status' => 'active']);
-        Goal::factory()->count(2)->create(['status' => 'completed']);
+        Goal::factory()->count(3)->create(['status' => 'active', 'progress' => 50]);
+        Goal::factory()->count(2)->create(['status' => 'completed', 'progress' => 100]);
 
         $result = $this->goalTool->execute([
             'action' => 'list',
@@ -259,7 +262,7 @@ class GoalToolTest extends TestCase
         $this->assertEquals(3, $result['count']);
     }
 
-    /** @test */
+    #[Test]
     public function it_gets_a_specific_goal(): void
     {
         $goal = Goal::factory()->create(['title' => 'Specific Goal']);
@@ -273,7 +276,7 @@ class GoalToolTest extends TestCase
         $this->assertEquals('Specific Goal', $result['goal']['title']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_for_invalid_action(): void
     {
         $result = $this->goalTool->execute([
@@ -284,7 +287,7 @@ class GoalToolTest extends TestCase
         $this->assertStringContainsString('Invalid action', $result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_for_nonexistent_goal(): void
     {
         $result = $this->goalTool->execute([
@@ -297,7 +300,7 @@ class GoalToolTest extends TestCase
         $this->assertStringContainsString('not found', $result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_only_checks_active_and_paused_goals_for_similarity(): void
     {
         // Create a completed goal
@@ -315,7 +318,7 @@ class GoalToolTest extends TestCase
         $this->assertTrue($result['success']);
     }
 
-    /** @test */
+    #[Test]
     public function it_clamps_priority_between_0_and_1(): void
     {
         $result = $this->goalTool->execute([
@@ -338,7 +341,7 @@ class GoalToolTest extends TestCase
         $this->assertEquals(0.0, $result['goal']['priority']);
     }
 
-    /** @test */
+    #[Test]
     public function it_clamps_progress_between_0_and_100(): void
     {
         $goal = Goal::factory()->create();
@@ -353,7 +356,7 @@ class GoalToolTest extends TestCase
         $this->assertEquals(100, $result['goal']['progress']);
     }
 
-    /** @test */
+    #[Test]
     public function it_adds_progress_notes_on_create(): void
     {
         $result = $this->goalTool->execute([

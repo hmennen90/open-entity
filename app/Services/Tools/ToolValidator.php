@@ -84,13 +84,28 @@ class ToolValidator
             'passthru' => 'passthru() is forbidden - use BashTool instead',
             'proc_open' => 'proc_open() is forbidden',
             'popen' => 'popen() is forbidden',
+            'call_user_func' => 'call_user_func() is forbidden - potential security bypass',
+            'call_user_func_array' => 'call_user_func_array() is forbidden - potential security bypass',
         ];
 
+        // Strip comments before checking to avoid false negatives
+        $codeWithoutComments = preg_replace('#//.*$|/\*.*?\*/#ms', '', $code);
+
         foreach ($forbidden as $func => $message) {
-            // Allow in comments, but not as function calls
-            if (preg_match('/[^a-zA-Z_]' . $func . '\s*\(/', $code)) {
+            // Match at start of line or after non-alphanumeric character
+            if (preg_match('/(^|[^a-zA-Z_])' . preg_quote($func, '/') . '\s*\(/m', $codeWithoutComments)) {
                 $errors[] = $message;
             }
+        }
+
+        // Check for variable function calls (e.g., $func(), ${...}())
+        if (preg_match('/\$\{?[a-zA-Z_]\w*\}?\s*\(/', $codeWithoutComments)) {
+            $errors[] = 'Variable function calls are forbidden for security reasons';
+        }
+
+        // Check for backtick operator (shell execution)
+        if (preg_match('/`[^`]+`/', $codeWithoutComments)) {
+            $errors[] = 'Backtick operator (shell execution) is forbidden';
         }
 
         // Warnings for risky operations
@@ -102,7 +117,7 @@ class ToolValidator
         ];
 
         foreach ($risky as $func => $message) {
-            if (preg_match('/[^a-zA-Z_]' . $func . '\s*\(/', $code)) {
+            if (preg_match('/(^|[^a-zA-Z_])' . preg_quote($func, '/') . '\s*\(/m', $codeWithoutComments)) {
                 $warnings[] = $message;
             }
         }

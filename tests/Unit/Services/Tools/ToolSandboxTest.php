@@ -8,6 +8,7 @@ use App\Services\Tools\Contracts\ToolInterface;
 use App\Events\ToolLoadFailed;
 use App\Events\ToolExecutionFailed;
 use Illuminate\Support\Facades\Event;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ToolSandboxTest extends TestCase
@@ -23,7 +24,7 @@ class ToolSandboxTest extends TestCase
         $this->toolsPath = storage_path('entity-test/tools');
     }
 
-    /** @test */
+    #[Test]
     public function it_loads_valid_tool_from_file(): void
     {
         $toolCode = $this->createValidToolCode('LoadableTool', 'loadable_tool');
@@ -38,7 +39,7 @@ class ToolSandboxTest extends TestCase
         $this->assertNull($result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_for_nonexistent_file(): void
     {
         $result = $this->sandbox->loadFromFile('/nonexistent/path/tool.php');
@@ -48,7 +49,7 @@ class ToolSandboxTest extends TestCase
         $this->assertEquals('file_not_found', $result['error']['type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_fires_event_on_load_failure(): void
     {
         Event::fake([ToolLoadFailed::class]);
@@ -64,7 +65,7 @@ class ToolSandboxTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_executes_tool_safely(): void
     {
         $tool = $this->createMockTool('test_tool', function (array $params) {
@@ -81,7 +82,7 @@ class ToolSandboxTest extends TestCase
         $this->assertEquals('Processed: hello', $result['result']);
     }
 
-    /** @test */
+    #[Test]
     public function it_catches_tool_execution_exceptions(): void
     {
         Event::fake([ToolExecutionFailed::class]);
@@ -99,7 +100,7 @@ class ToolSandboxTest extends TestCase
         Event::assertDispatched(ToolExecutionFailed::class);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_parameters_before_execution(): void
     {
         $tool = $this->createMockTool('validated_tool', function (array $params) {
@@ -118,7 +119,7 @@ class ToolSandboxTest extends TestCase
         $this->assertContains('required_field is required', $result['error']['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_tools_with_forbidden_functions(): void
     {
         Event::fake([ToolLoadFailed::class]);

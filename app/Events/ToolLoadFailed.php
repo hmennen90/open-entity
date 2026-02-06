@@ -35,11 +35,11 @@ class ToolLoadFailed implements ShouldBroadcast
     {
         return [
             'type' => 'tool_load_failed',
-            'file_path' => $this->filePath,
+            'file_path' => basename($this->filePath),
             'stage' => $this->stage,
-            'errors' => $this->errors,
+            'errors' => array_map(fn ($e) => htmlspecialchars($e, ENT_QUOTES, 'UTF-8'), $this->errors),
             'timestamp' => now()->toIso8601String(),
-            'message' => $this->getHumanReadableMessage(),
+            'message' => htmlspecialchars($this->getHumanReadableMessage(), ENT_QUOTES, 'UTF-8'),
         ];
     }
 

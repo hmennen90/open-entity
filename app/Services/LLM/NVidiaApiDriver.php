@@ -107,6 +107,9 @@ class NVidiaApiDriver implements LLMDriverInterface
     {
         $ch = curl_init();
 
+        $fullResponse = '';
+        $thinkingContent = '';
+
         curl_setopt_array($ch, [
             CURLOPT_URL => "{$this->baseUrl}/chat/completions",
             CURLOPT_RETURNTRANSFER => false,
@@ -148,9 +151,6 @@ class NVidiaApiDriver implements LLMDriverInterface
                 return strlen($data);
             },
         ]);
-
-        $fullResponse = '';
-        $thinkingContent = '';
 
         $result = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

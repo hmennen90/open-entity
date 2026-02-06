@@ -222,15 +222,16 @@ return [
     'tools' => [
         'filesystem' => [
             'enabled' => true,
-            // Full access to the entire project
-            'allowed_paths' => [
-                base_path(),
-            ],
+            // Restricted to entity storage by default - extend via ENTITY_FILESYSTEM_PATHS env
+            'allowed_paths' => array_filter([
+                storage_path('entity'),
+                env('ENTITY_FILESYSTEM_EXTRA_PATH'),
+            ]),
         ],
         'bash' => [
-            'enabled' => true,
-            // Empty array = all commands allowed
-            'allowed_commands' => [],
+            'enabled' => (bool) env('ENTITY_BASH_ENABLED', true),
+            // null = default whitelist in BashTool, empty array [] from env would allow all
+            'allowed_commands' => null,
         ],
         'web' => [
             'enabled' => true,
@@ -241,8 +242,8 @@ return [
         ],
         'artisan' => [
             'enabled' => true,
-            // Empty array = full access to all commands
-            'allowed_commands' => [],
+            // null = use default whitelist defined in ArtisanTool
+            'allowed_commands' => null,
         ],
         'search' => [
             'enabled' => true,

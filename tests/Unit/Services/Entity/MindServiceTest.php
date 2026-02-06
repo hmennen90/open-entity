@@ -8,6 +8,7 @@ use App\Services\Entity\MemoryService;
 use App\Models\Thought;
 use App\Models\Goal;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class MindServiceTest extends TestCase
@@ -28,7 +29,7 @@ class MindServiceTest extends TestCase
         $this->mindService = new MindService($personalityService, $memoryService);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_thoughts(): void
     {
         $thought = $this->mindService->createThought([
@@ -45,7 +46,7 @@ class MindServiceTest extends TestCase
         $this->assertDatabaseHas('thoughts', ['id' => $thought->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_retrieves_recent_thoughts(): void
     {
         // Erstelle mehrere Gedanken
@@ -62,7 +63,7 @@ class MindServiceTest extends TestCase
         $this->assertCount(3, $recent);
     }
 
-    /** @test */
+    #[Test]
     public function it_loads_personality(): void
     {
         $personality = $this->mindService->getPersonality();
@@ -72,7 +73,7 @@ class MindServiceTest extends TestCase
         $this->assertArrayHasKey('traits', $personality);
     }
 
-    /** @test */
+    #[Test]
     public function it_estimates_mood_from_recent_thoughts(): void
     {
         // Erstelle positive Gedanken
@@ -90,7 +91,7 @@ class MindServiceTest extends TestCase
         $this->assertArrayHasKey('energy', $mood);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_think_context(): void
     {
         $this->mindService->createThought([
@@ -111,7 +112,7 @@ class MindServiceTest extends TestCase
         );
     }
 
-    /** @test */
+    #[Test]
     public function it_retrieves_active_goals(): void
     {
         Goal::create([
@@ -129,7 +130,7 @@ class MindServiceTest extends TestCase
         $this->assertEquals('Test Goal', $goals->first()->title);
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_thoughts_with_context(): void
     {
         $thought = $this->mindService->createThought([
@@ -146,7 +147,7 @@ class MindServiceTest extends TestCase
         $this->assertEquals(['source' => 'chat', 'user' => 'hendrik'], $thought->context);
     }
 
-    /** @test */
+    #[Test]
     public function thought_types_are_validated(): void
     {
         $validTypes = ['observation', 'reflection', 'curiosity', 'emotion', 'decision'];

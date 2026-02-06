@@ -8,6 +8,7 @@ use App\Services\Tools\ToolValidator;
 use App\Services\Tools\Contracts\ToolInterface;
 use App\Events\ToolCreated;
 use Illuminate\Support\Facades\Event;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ToolRegistryTest extends TestCase
@@ -36,7 +37,7 @@ class ToolRegistryTest extends TestCase
         $this->registry = new ToolRegistry($sandbox);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_register_a_tool(): void
     {
         $tool = $this->createMockTool('custom_tool');
@@ -47,14 +48,14 @@ class ToolRegistryTest extends TestCase
         $this->assertSame($tool, $this->registry->get('custom_tool'));
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_null_for_unknown_tool(): void
     {
         $this->assertNull($this->registry->get('nonexistent_tool'));
         $this->assertFalse($this->registry->has('nonexistent_tool'));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_execute_registered_tool(): void
     {
         $tool = $this->createMockTool('exec_tool', function ($params) {
@@ -72,7 +73,7 @@ class ToolRegistryTest extends TestCase
         $this->assertEquals('Result: test', $result['result']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_error_for_unknown_tool_execution(): void
     {
         $result = $this->registry->execute('unknown_tool', []);
@@ -81,7 +82,7 @@ class ToolRegistryTest extends TestCase
         $this->assertEquals('tool_not_found', $result['error']['type']);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_custom_tool(): void
     {
         Event::fake([ToolCreated::class]);
@@ -99,7 +100,7 @@ class ToolRegistryTest extends TestCase
         });
     }
 
-    /** @test */
+    #[Test]
     public function it_rejects_invalid_tool_code(): void
     {
         $invalidCode = "<?php\nclass Invalid { syntax error";
@@ -111,7 +112,7 @@ class ToolRegistryTest extends TestCase
         $this->assertEquals('syntax', $result['error']['stage']);
     }
 
-    /** @test */
+    #[Test]
     public function it_tracks_failed_tools(): void
     {
         Event::fake();
@@ -144,7 +145,7 @@ PHP;
         $this->assertTrue($failed->has('broken_tool'));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_retry_failed_tool(): void
     {
         Event::fake();
@@ -156,7 +157,7 @@ PHP;
         $this->assertStringContainsString('not found', $result['error']);
     }
 
-    /** @test */
+    #[Test]
     public function it_tracks_retry_attempts(): void
     {
         Event::fake();
@@ -192,7 +193,7 @@ PHP;
         $this->assertTrue($this->registry->failed()->has('track_retry_tool'));
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_tool_schemas_for_llm(): void
     {
         $tool1 = $this->createMockTool('tool_one', null, 'First tool', [
@@ -215,7 +216,7 @@ PHP;
         $this->assertEquals('tool_two', $schemas[1]['name']);
     }
 
-    /** @test */
+    #[Test]
     public function it_generates_prompt_context(): void
     {
         $tool = $this->createMockTool('context_tool', null, 'A tool for testing');
@@ -227,7 +228,7 @@ PHP;
         $this->assertStringContainsString('A tool for testing', $context);
     }
 
-    /** @test */
+    #[Test]
     public function it_includes_failed_tools_in_prompt_context(): void
     {
         Event::fake();

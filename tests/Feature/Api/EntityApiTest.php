@@ -6,6 +6,7 @@ use App\Services\Entity\EntityService;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class EntityApiTest extends TestCase
@@ -22,7 +23,7 @@ class EntityApiTest extends TestCase
         $this->createTestPersonality();
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_entity_status(): void
     {
         Cache::put('entity:status', 'sleeping', 86400);
@@ -41,7 +42,7 @@ class EntityApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_wakes_the_entity(): void
     {
         Cache::put('entity:status', 'sleeping', 86400);
@@ -56,7 +57,7 @@ class EntityApiTest extends TestCase
         $this->assertEquals('awake', Cache::get('entity:status'));
     }
 
-    /** @test */
+    #[Test]
     public function it_puts_entity_to_sleep(): void
     {
         Cache::put('entity:status', 'awake', 86400);
@@ -71,7 +72,7 @@ class EntityApiTest extends TestCase
         $this->assertEquals('sleeping', Cache::get('entity:status'));
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_entity_personality(): void
     {
         $response = $this->getJson('/api/v1/entity/personality');
@@ -83,7 +84,7 @@ class EntityApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_entity_mood(): void
     {
         $response = $this->getJson('/api/v1/entity/mood');
@@ -96,7 +97,7 @@ class EntityApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_available_tools(): void
     {
         $response = $this->getJson('/api/v1/entity/tools');

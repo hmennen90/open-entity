@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Event;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class ChatApiTest extends TestCase
@@ -22,7 +23,7 @@ class ChatApiTest extends TestCase
         $this->createTestPersonality();
     }
 
-    /** @test */
+    #[Test]
     public function it_lists_conversations(): void
     {
         Conversation::factory()->count(3)->create();
@@ -33,7 +34,7 @@ class ChatApiTest extends TestCase
             ->assertJsonCount(3, 'data');
     }
 
-    /** @test */
+    #[Test]
     public function it_creates_a_conversation(): void
     {
         $response = $this->postJson('/api/v1/chat/conversations', [
@@ -57,7 +58,7 @@ class ChatApiTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_shows_a_conversation_with_messages(): void
     {
         $conversation = Conversation::factory()->create();
@@ -77,7 +78,7 @@ class ChatApiTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_404_for_unknown_conversation(): void
     {
         $response = $this->getJson('/api/v1/chat/conversations/999');
@@ -85,7 +86,7 @@ class ChatApiTest extends TestCase
         $response->assertStatus(404);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_conversation_creation(): void
     {
         $response = $this->postJson('/api/v1/chat/conversations', [

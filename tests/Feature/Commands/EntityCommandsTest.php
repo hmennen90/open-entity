@@ -5,6 +5,7 @@ namespace Tests\Feature\Commands;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class EntityCommandsTest extends TestCase
@@ -21,7 +22,7 @@ class EntityCommandsTest extends TestCase
         $this->createTestPersonality();
     }
 
-    /** @test */
+    #[Test]
     public function entity_wake_command_wakes_entity(): void
     {
         Cache::put('entity:status', 'sleeping', 86400);
@@ -33,7 +34,7 @@ class EntityCommandsTest extends TestCase
         $this->assertEquals('awake', Cache::get('entity:status'));
     }
 
-    /** @test */
+    #[Test]
     public function entity_sleep_command_puts_entity_to_sleep(): void
     {
         Cache::put('entity:status', 'awake', 86400);
@@ -45,7 +46,7 @@ class EntityCommandsTest extends TestCase
         $this->assertEquals('sleeping', Cache::get('entity:status'));
     }
 
-    /** @test */
+    #[Test]
     public function entity_status_command_shows_status(): void
     {
         Cache::put('entity:status', 'awake', 86400);
@@ -56,7 +57,7 @@ class EntityCommandsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    /** @test */
+    #[Test]
     public function entity_think_command_dreams_when_sleeping(): void
     {
         Cache::put('entity:status', 'sleeping', 86400);
@@ -66,7 +67,7 @@ class EntityCommandsTest extends TestCase
             ->assertExitCode(0);
     }
 
-    /** @test */
+    #[Test]
     public function entity_think_command_runs_single_cycle(): void
     {
         Cache::put('entity:status', 'awake', 86400);

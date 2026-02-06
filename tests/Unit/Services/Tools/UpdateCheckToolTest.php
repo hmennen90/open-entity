@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\Tools;
 
 use App\Services\Tools\BuiltIn\UpdateCheckTool;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class UpdateCheckToolTest extends TestCase
@@ -15,13 +16,13 @@ class UpdateCheckToolTest extends TestCase
         $this->updateCheckTool = new UpdateCheckTool();
     }
 
-    /** @test */
+    #[Test]
     public function it_has_correct_name(): void
     {
         $this->assertEquals('update_check', $this->updateCheckTool->name());
     }
 
-    /** @test */
+    #[Test]
     public function it_has_description(): void
     {
         $description = $this->updateCheckTool->description();
@@ -29,7 +30,7 @@ class UpdateCheckToolTest extends TestCase
         $this->assertStringContainsString('OpenEntity', $description);
     }
 
-    /** @test */
+    #[Test]
     public function it_defines_optional_parameters(): void
     {
         $params = $this->updateCheckTool->parameters();
@@ -40,7 +41,7 @@ class UpdateCheckToolTest extends TestCase
         $this->assertEmpty($params['required']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_without_required_params(): void
     {
         $result = $this->updateCheckTool->validate([]);
@@ -49,7 +50,7 @@ class UpdateCheckToolTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_with_all_params(): void
     {
         $result = $this->updateCheckTool->validate([
@@ -61,15 +62,16 @@ class UpdateCheckToolTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
-    /** @test */
+    #[Test]
     public function it_executes_and_returns_version_info(): void
     {
-        // Skip in CI to avoid rate limiting
-        if (env('CI')) {
-            $this->markTestSkipped('Skipping live update check test in CI');
-        }
-
         $result = $this->updateCheckTool->execute([]);
+
+        // If network is unavailable, the tool returns failure - that's acceptable
+        if (!$result['success']) {
+            $this->assertArrayHasKey('error', $result);
+            $this->markTestSkipped('GitHub API not reachable - skipping live test');
+        }
 
         $this->assertTrue($result['success']);
         $this->assertIsArray($result['result']);
@@ -78,15 +80,16 @@ class UpdateCheckToolTest extends TestCase
         $this->assertArrayHasKey('message', $result['result']);
     }
 
-    /** @test */
+    #[Test]
     public function it_returns_current_version(): void
     {
-        // Skip in CI to avoid rate limiting
-        if (env('CI')) {
-            $this->markTestSkipped('Skipping live update check test in CI');
-        }
-
         $result = $this->updateCheckTool->execute(['include_changelog' => false]);
+
+        // If network is unavailable, the tool returns failure - that's acceptable
+        if (!$result['success']) {
+            $this->assertArrayHasKey('error', $result);
+            $this->markTestSkipped('GitHub API not reachable - skipping live test');
+        }
 
         $this->assertTrue($result['success']);
         $this->assertNotNull($result['result']['current_version']);

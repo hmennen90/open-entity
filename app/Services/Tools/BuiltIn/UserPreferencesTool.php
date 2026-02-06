@@ -75,6 +75,8 @@ class UserPreferencesTool implements ToolInterface
         if (($params['action'] ?? '') === 'update') {
             if (!isset($params['value'])) {
                 $errors[] = 'value is required for update action';
+            } elseif (strlen($params['value']) > 2000) {
+                $errors[] = 'value must not exceed 2000 characters';
             }
         }
 

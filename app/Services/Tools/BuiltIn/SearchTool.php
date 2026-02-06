@@ -158,7 +158,18 @@ class SearchTool implements ToolInterface
      */
     private function fetchPageContents(array $results): array
     {
+        $totalStart = microtime(true);
+        $totalBudget = $this->timeout * 2; // Total budget for all page fetches
+
         foreach ($results as &$result) {
+            // Check total time budget
+            if ((microtime(true) - $totalStart) >= $totalBudget) {
+                $result['content'] = null;
+                $result['fetch_status'] = 'skipped';
+                $result['fetch_error'] = 'Total fetch time budget exceeded';
+                continue;
+            }
+
             try {
                 $response = Http::timeout($this->fetchTimeout)
                     ->withHeaders([

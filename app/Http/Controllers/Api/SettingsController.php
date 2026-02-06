@@ -111,10 +111,16 @@ class SettingsController extends Controller
             ];
         }
 
-        $content = file_get_contents($this->preferencesPath);
-        $preferences = json_decode($content, true);
-
-        return is_array($preferences) ? $preferences : [];
+        try {
+            $content = file_get_contents($this->preferencesPath);
+            if ($content === false) {
+                return ['created_at' => now()->toIso8601String()];
+            }
+            $preferences = json_decode($content, true);
+            return is_array($preferences) ? $preferences : [];
+        } catch (\Exception $e) {
+            return ['created_at' => now()->toIso8601String()];
+        }
     }
 
     /**
@@ -127,9 +133,14 @@ class SettingsController extends Controller
             mkdir($dir, 0755, true);
         }
 
-        file_put_contents(
-            $this->preferencesPath,
-            json_encode($preferences, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
-        );
+        $json = json_encode($preferences, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        if ($json === false) {
+            throw new \RuntimeException('Failed to encode preferences as JSON');
+        }
+
+        $result = file_put_contents($this->preferencesPath, $json, LOCK_EX);
+        if ($result === false) {
+            throw new \RuntimeException('Failed to write preferences file');
+        }
     }
 }

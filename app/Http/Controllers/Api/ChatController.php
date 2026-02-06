@@ -115,7 +115,7 @@ class ChatController extends Controller
 
         // Gespräch finden oder erstellen
         $conversation = $request->conversation_id
-            ? Conversation::find($request->conversation_id)
+            ? Conversation::findOrFail($request->conversation_id)
             : Conversation::create([
                 'participant' => $participantName,
                 'participant_type' => 'human',
@@ -181,6 +181,13 @@ class ChatController extends Controller
 
         $originalMessage = Message::findOrFail($request->message_id);
         $conversation = $originalMessage->conversation;
+
+        if (!$conversation) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Conversation for this message no longer exists',
+            ], 404);
+        }
 
         // Lösche vorherige Fehler-Antwort falls vorhanden
         Message::where('conversation_id', $conversation->id)

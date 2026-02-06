@@ -77,7 +77,7 @@ class BashTool implements ToolInterface
 
         try {
             Log::channel('entity')->info('Bash command executing', [
-                'command' => $command,
+                'command' => preg_replace('/(\b(?:password|secret|token|key|api_key)\s*=\s*)\S+/i', '$1[REDACTED]', $command),
                 'working_directory' => $workingDir,
                 'timeout' => $timeout,
             ]);

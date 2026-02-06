@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\Entity\EntityService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Think Command - Executes a single think cycle or continuous thinking.
@@ -93,9 +94,25 @@ class EntityThink extends Command
         }
 
         $cycleCount = 0;
+        $consecutiveFailures = 0;
+        $lastStatusRefresh = time();
+        $statusRefreshInterval = 3600; // Refresh status cache every hour
 
         while (true) {
             $cycleCount++;
+
+            // Periodically refresh the awake status cache to prevent TTL expiry
+            if (time() - $lastStatusRefresh >= $statusRefreshInterval) {
+                $this->entityService->refreshStatusCache();
+                $lastStatusRefresh = time();
+
+                // Also re-assert awake status if somehow drifted to sleeping
+                if ($this->entityService->getStatus() !== 'awake') {
+                    $this->warn('Entity status drifted to sleeping - re-waking');
+                    Log::channel('entity')->warning('Entity status drifted to sleeping during continuous think loop - re-waking');
+                    $this->entityService->wake();
+                }
+            }
 
             // Get current interval (dynamic if adaptive mode)
             if ($fixedInterval !== null) {
@@ -123,8 +140,28 @@ class EntityThink extends Command
                 if ($thought->led_to_action) {
                     $this->comment("Action: {$thought->action_taken}");
                 }
+                $consecutiveFailures = 0;
             } else {
-                $this->warn('No thought generated');
+                $consecutiveFailures++;
+                $this->warn("No thought generated (consecutive failures: {$consecutiveFailures})");
+
+                if ($consecutiveFailures >= 10 && $consecutiveFailures % 10 === 0) {
+                    Log::channel('entity')->error('Think loop: {count} consecutive failures - possible systemic issue', [
+                        'count' => $consecutiveFailures,
+                        'cycle' => $cycleCount,
+                        'status' => $this->entityService->getStatus(),
+                    ]);
+                    $this->error("WARNING: {$consecutiveFailures} consecutive failures detected!");
+
+                    // After 30 consecutive failures, attempt recovery by re-waking
+                    if ($consecutiveFailures >= 30 && $consecutiveFailures % 30 === 0) {
+                        $this->warn('Attempting recovery: re-waking entity...');
+                        Log::channel('entity')->warning('Think loop: attempting recovery after {count} failures', [
+                            'count' => $consecutiveFailures,
+                        ]);
+                        $this->entityService->wake();
+                    }
+                }
             }
 
             $this->line("Next cycle in {$currentInterval} seconds...");
