@@ -131,6 +131,119 @@ GET /api/v1/entity/tools
 
 ---
 
+## LLM Configuration
+
+LLM providers are managed exclusively via the database. The seeder creates a default Ollama configuration on startup.
+
+### List Available Drivers
+
+```
+GET /api/v1/llm/drivers
+```
+
+**Response:**
+```json
+{
+    "drivers": ["ollama", "openai", "openrouter", "nvidia"]
+}
+```
+
+### List Configurations
+
+```
+GET /api/v1/llm/configurations
+```
+
+**Response:**
+```json
+{
+    "configurations": [
+        {
+            "id": 1,
+            "name": "Ollama (Lokal)",
+            "driver": "ollama",
+            "model": "qwen2.5:14b-instruct-q5_K_M",
+            "is_active": true,
+            "is_default": true,
+            "priority": 100,
+            "status": "ready",
+            "last_used_at": "2026-02-06T10:00:00Z",
+            "error_count": 0
+        }
+    ]
+}
+```
+
+### Create Configuration
+
+```
+POST /api/v1/llm/configurations
+```
+
+**Body:**
+```json
+{
+    "name": "OpenAI GPT-4",
+    "driver": "openai",
+    "model": "gpt-4",
+    "api_key": "sk-...",
+    "is_active": true,
+    "priority": 50,
+    "options": {
+        "temperature": 0.8
+    }
+}
+```
+
+### Update Configuration
+
+```
+PUT /api/v1/llm/configurations/{id}
+```
+
+### Delete Configuration
+
+```
+DELETE /api/v1/llm/configurations/{id}
+```
+
+### Test Configuration
+
+```
+POST /api/v1/llm/configurations/{id}/test
+```
+
+Tests the connection to the LLM provider and returns success/failure.
+
+### Set Default
+
+```
+POST /api/v1/llm/configurations/{id}/default
+```
+
+### Reset Circuit Breaker
+
+```
+POST /api/v1/llm/configurations/{id}/reset
+```
+
+Resets the error count after connection issues have been resolved.
+
+### Reorder Configurations
+
+```
+POST /api/v1/llm/configurations/reorder
+```
+
+**Body:**
+```json
+{
+    "order": [3, 1, 2]
+}
+```
+
+---
+
 ## Chat
 
 ### Get Conversations

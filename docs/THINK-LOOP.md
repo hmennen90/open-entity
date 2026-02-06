@@ -132,6 +132,26 @@ When `WANTS_ACTION: yes`:
    $this->updateGoalProgress($title, $increment, $note);
    ```
 
+## Error Handling
+
+### NoLlmConfigurationException
+
+If no LLM configuration exists in the database, `LLMService` throws a `NoLlmConfigurationException`. This exception is intentionally **not** caught by `EntityService::think()` or `EntityService::dream()`, so it propagates up to the `EntityThink` command.
+
+In continuous mode, the command handles this gracefully:
+- Logs a warning: "No LLM configuration available"
+- Does **not** increment the consecutive failure counter
+- Waits for the next cycle and retries
+
+This prevents the failure counter from escalating and triggering unnecessary recovery actions (re-waking) when the system simply hasn't been configured yet.
+
+### All Configs Failed
+
+When LLM configurations exist but all fail (connection errors, timeouts, etc.), the normal exception handling applies:
+- `EntityService::think()` catches the exception, returns `null`
+- The failure counter increments
+- After 30 consecutive failures, the entity attempts recovery by re-waking
+
 ## Running the Think Loop
 
 ### Single Cycle
@@ -179,6 +199,10 @@ $this->energyService->gainGoalCompleted($goalTitle);
 // config/entity.php
 'think_interval' => env('ENTITY_THINK_INTERVAL', 30), // seconds
 ```
+
+### LLM Configuration
+
+The think loop requires at least one active LLM configuration in the `llm_configurations` database table. On first Docker startup, the `LlmConfigurationSeeder` automatically creates a default Ollama configuration. Additional providers can be configured via the API (`/api/v1/llm/configurations`).
 
 ## Related
 

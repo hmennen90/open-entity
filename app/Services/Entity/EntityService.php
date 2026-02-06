@@ -2,6 +2,7 @@
 
 namespace App\Services\Entity;
 
+use App\Exceptions\NoLlmConfigurationException;
 use App\Services\LLM\LLMService;
 use App\Services\Tools\ToolRegistry;
 use App\Models\Thought;
@@ -118,6 +119,8 @@ class EntityService
 
             return $thought;
 
+        } catch (NoLlmConfigurationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::channel('entity')->error('Think cycle failed', [
                 'error' => $e->getMessage(),
@@ -189,6 +192,8 @@ class EntityService
 
             return $thought;
 
+        } catch (NoLlmConfigurationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             Log::channel('entity')->error('Dream cycle failed', [
                 'error' => $e->getMessage(),

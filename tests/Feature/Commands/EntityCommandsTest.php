@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Commands;
 
+use App\Services\LLM\LLMService;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
@@ -62,6 +63,8 @@ class EntityCommandsTest extends TestCase
     {
         Cache::put('entity:status', 'sleeping', 86400);
 
+        $this->mockLlmService("DREAM_THEME: memory\nINTENSITY: 0.3\nDREAM: A quiet reflection.");
+
         $this->artisan('entity:think')
             ->expectsOutput('Entity is sleeping - starting dream cycle...')
             ->assertExitCode(0);
@@ -72,10 +75,22 @@ class EntityCommandsTest extends TestCase
     {
         Cache::put('entity:status', 'awake', 86400);
 
+        $this->mockLlmService("THOUGHT_TYPE: observation\nINTENSITY: 0.5\nTHOUGHT: Testing.\nWANTS_ACTION: no");
+
         // Dieser Test prüft nur dass der Command ohne Fehler startet
         $this->artisan('entity:think')
             ->expectsOutput('Starting single think cycle...')
             ->assertExitCode(0);
+    }
+
+    private function mockLlmService(string $response): void
+    {
+        $mock = \Mockery::mock(LLMService::class);
+        $mock->shouldReceive('generate')->andReturn($response);
+        $this->app->instance(LLMService::class, $mock);
+
+        // Force EntityService to be re-resolved with the mocked LLMService
+        $this->app->forgetInstance(\App\Services\Entity\EntityService::class);
     }
 
     private function createTestPersonality(): void

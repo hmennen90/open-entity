@@ -14,6 +14,9 @@ ROLE="${CONTAINER_ROLE:-app}"
 if [ "$ROLE" = "app" ]; then
     # === APP CONTAINER: Installiert alles ===
 
+    # Remove migration marker so workers wait for fresh migration check
+    rm -f storage/.db-ready
+
     # Storage-Verzeichnisse erstellen (benötigt für Laravel Caching während composer install)
     # Ignore errors - directories might already exist or permissions handled by volume mounts
     mkdir -p storage/framework/{sessions,views,cache} 2>/dev/null || true
@@ -66,6 +69,12 @@ else
         sleep 2
     done
     echo "✅ Application key ready"
+
+    echo "⏳ Waiting for database migrations..."
+    while [ ! -f "storage/.db-ready" ]; do
+        sleep 2
+    done
+    echo "✅ Database ready"
 fi
 
 # Storage-Verzeichnisse sicherstellen (für alle Container)
@@ -86,21 +95,29 @@ if [ -n "$DB_HOST" ]; then
         echo "🔄 Running migrations..."
         php artisan migrate --force --no-interaction
 
-        # Warte auf Ollama bevor Seeder läuft (für Modellerkennung)
-        OLLAMA_URL="${OLLAMA_BASE_URL:-http://ollama:11434}"
-        echo "⏳ Waiting for Ollama..."
-        for i in {1..60}; do
-            if curl -s "$OLLAMA_URL/api/tags" > /dev/null 2>&1; then
-                echo "✅ Ollama is ready"
-                break
-            fi
-            sleep 2
-        done
-
         # Seeder ausführen bei Erstinstallation
         echo "🌱 Running seeders..."
         php artisan db:seed --force --no-interaction
     fi
+
+    # Warte auf Ollama bevor LLM-Seeder läuft (für Modellerkennung)
+    OLLAMA_URL="${OLLAMA_BASE_URL:-http://ollama:11434}"
+    echo "⏳ Waiting for Ollama..."
+    for i in {1..60}; do
+        if curl -s "$OLLAMA_URL/api/tags" > /dev/null 2>&1; then
+            echo "✅ Ollama is ready"
+            break
+        fi
+        sleep 2
+    done
+
+    # LLM-Konfiguration immer sicherstellen (idempotent)
+    echo "🔧 Ensuring LLM configuration..."
+    php artisan db:seed --class=LlmConfigurationSeeder --force --no-interaction
+
+    # Signal to worker containers that database is ready
+    touch storage/.db-ready
+    echo "✅ Database migrations verified"
 fi
 
 # Cache leeren bei erstem Start

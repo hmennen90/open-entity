@@ -15,34 +15,34 @@ class LlmConfigurationSeeder extends Seeder
      */
     public function run(): void
     {
-        // Nur seeden wenn keine Konfigurationen existieren
-        if (LlmConfiguration::count() > 0) {
-            $this->command->info('LLM configurations already exist, skipping...');
-            return;
-        }
-
         $this->command->info('Seeding LLM configurations...');
 
         // Ollama-Modell ermitteln
         $ollamaModel = $this->detectOllamaModel();
 
-        // Standard Ollama Konfiguration (lokal im Docker)
-        LlmConfiguration::create([
-            'name' => 'Ollama (Lokal)',
-            'driver' => 'ollama',
-            'model' => $ollamaModel,
-            'base_url' => env('OLLAMA_BASE_URL', 'http://ollama:11434'),
-            'is_active' => true,
-            'is_default' => true,
-            'priority' => 100,
-            'options' => [
-                'temperature' => 0.8,
-                'top_p' => 0.9,
-                'num_ctx' => 8192,
-            ],
-        ]);
+        // Standard Ollama Konfiguration (lokal im Docker) - idempotent
+        $config = LlmConfiguration::firstOrCreate(
+            ['name' => 'Ollama (Lokal)'],
+            [
+                'driver' => 'ollama',
+                'model' => $ollamaModel,
+                'base_url' => env('OLLAMA_BASE_URL', 'http://ollama:11434'),
+                'is_active' => true,
+                'is_default' => true,
+                'priority' => 100,
+                'options' => [
+                    'temperature' => 0.8,
+                    'top_p' => 0.9,
+                    'num_ctx' => 8192,
+                ],
+            ]
+        );
 
-        $this->command->info("  ✓ Ollama (Lokal) - Default: {$ollamaModel}");
+        if ($config->wasRecentlyCreated) {
+            $this->command->info("  ✓ Ollama (Lokal) created - Default: {$ollamaModel}");
+        } else {
+            $this->command->info("  ✓ Ollama (Lokal) already exists, skipping");
+        }
 
         $this->command->info('LLM configurations seeded successfully!');
     }

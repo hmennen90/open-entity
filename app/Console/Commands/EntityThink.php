@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Exceptions\NoLlmConfigurationException;
 use App\Services\Entity\EntityService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
@@ -132,7 +133,16 @@ class EntityThink extends Command
                 $this->line("--- Think Cycle #{$cycleCount} ---");
             }
 
-            $thought = $this->entityService->think();
+            try {
+                $thought = $this->entityService->think();
+            } catch (NoLlmConfigurationException $e) {
+                $this->warn('No LLM configuration available - configure via API /api/v1/llm/configurations');
+                Log::channel('entity')->warning('Think loop: no LLM configuration available');
+                $this->line("Next cycle in {$currentInterval} seconds...");
+                $this->newLine();
+                sleep($currentInterval);
+                continue;
+            }
 
             if ($thought) {
                 $this->info("[{$thought->type}] {$thought->content}");

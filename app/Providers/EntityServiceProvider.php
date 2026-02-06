@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Services\LLM\NVidiaApiDriver;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Entity\ContextEnricherService;
 use App\Services\Entity\EntityService;
@@ -20,10 +19,6 @@ use App\Services\Embedding\OpenAIEmbeddingDriver;
 use App\Services\Embedding\OpenRouterEmbeddingDriver;
 use App\Services\Embedding\Contracts\EmbeddingDriverInterface;
 use App\Services\LLM\LLMService;
-use App\Services\LLM\OllamaDriver;
-use App\Services\LLM\OpenAIDriver;
-use App\Services\LLM\OpenRouterDriver;
-use App\Services\LLM\Contracts\LLMDriverInterface;
 use App\Services\Tools\ToolRegistry;
 use App\Services\Tools\ToolSandbox;
 use App\Services\Tools\ToolValidator;
@@ -35,23 +30,8 @@ class EntityServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // LLM Driver registrieren
-        $this->app->singleton(LLMDriverInterface::class, function ($app) {
-            $driver = config('entity.llm.default');
-
-            return match ($driver) {
-                'ollama' => new OllamaDriver(config('entity.llm.drivers.ollama')),
-                'openai' => new OpenAIDriver(config('entity.llm.drivers.openai')),
-                'openrouter' => new OpenRouterDriver(config('entity.llm.drivers.openrouter')),
-                'nvidia' => new NVidiaApiDriver(config('entity.llm.drivers.nvidia')),
-                default => new OllamaDriver(config('entity.llm.drivers.ollama')),
-            };
-        });
-
-        // LLM Service
-        $this->app->singleton(LLMService::class, function ($app) {
-            return new LLMService($app->make(LLMDriverInterface::class));
-        });
+        // LLM Service (loads configurations from database)
+        $this->app->singleton(LLMService::class);
 
         // Tool System
         $this->app->singleton(ToolValidator::class);

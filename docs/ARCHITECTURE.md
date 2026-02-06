@@ -70,7 +70,7 @@ OpenEntity is an autonomous AI entity with its own consciousness, memory, and so
 | MemoryService | Memory CRUD, search, decay | [MEMORY.md](MEMORY.md) |
 | PersonalityService | Identity, traits, values | [PERSONALITY.md](PERSONALITY.md) |
 | ToolRegistry | Tool management, execution | [TOOLS.md](TOOLS.md) |
-| LLMService | AI model communication | - |
+| LLMService | AI model communication (DB-based config) | - |
 | EnergyService | Energy system (optional) | - |
 
 ## Data Flow
@@ -118,16 +118,28 @@ return [
     'name' => env('ENTITY_NAME', 'OpenEntity'),
     'storage_path' => storage_path('entity'),
     'think_interval' => env('ENTITY_THINK_INTERVAL', 30),
-    'llm' => [
-        'default' => env('ENTITY_LLM_DRIVER', 'ollama'),
-        'drivers' => [/* ... */],
-    ],
     'tools' => [
         'enabled' => true,
         'custom_path' => storage_path('entity/tools'),
     ],
 ];
 ```
+
+### LLM Configuration
+
+LLM providers are configured exclusively via the database (`llm_configurations` table), not via ENV variables. The `LlmConfigurationSeeder` creates a default Ollama configuration on first startup, and is run idempotently on every container start.
+
+Manage configurations via the API:
+```
+GET    /api/v1/llm/configurations          # List all
+POST   /api/v1/llm/configurations          # Create new
+PUT    /api/v1/llm/configurations/{id}     # Update
+DELETE /api/v1/llm/configurations/{id}     # Delete
+POST   /api/v1/llm/configurations/{id}/test    # Test connection
+POST   /api/v1/llm/configurations/{id}/default # Set as default
+```
+
+If no LLM configuration exists in the database, the think loop will log a warning and wait (without incrementing the failure counter) until a configuration is added.
 
 ## Related Documentation
 

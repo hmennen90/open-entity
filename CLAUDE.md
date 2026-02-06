@@ -217,6 +217,19 @@ GET    /api/v1/entity/mood        # Current mood
 GET    /api/v1/entity/tools       # Available tools
 ```
 
+### LLM Configuration
+```
+GET    /api/v1/llm/drivers                         # Supported drivers
+GET    /api/v1/llm/configurations                  # All configurations
+POST   /api/v1/llm/configurations                  # Create configuration
+PUT    /api/v1/llm/configurations/{id}             # Update configuration
+DELETE /api/v1/llm/configurations/{id}             # Delete configuration
+POST   /api/v1/llm/configurations/{id}/test        # Test connection
+POST   /api/v1/llm/configurations/{id}/default     # Set as default
+POST   /api/v1/llm/configurations/{id}/reset       # Reset circuit breaker
+POST   /api/v1/llm/configurations/reorder          # Reorder priority
+```
+
 ### Chat
 ```
 GET    /api/v1/chat/conversations              # All conversations
@@ -323,7 +336,14 @@ php artisan test --parallel               # Parallel execution
 
 ## LLM Configuration
 
-The `setup.sh` script auto-selects optimal models based on available VRAM/RAM:
+LLM providers are configured **exclusively via the database** (`llm_configurations` table). There is no ENV-based fallback driver.
+
+### Automatic Setup
+On Docker startup, the `LlmConfigurationSeeder` runs idempotently and creates a default Ollama configuration. The seeder auto-detects the best installed Ollama model, or uses `OLLAMA_MODEL` from ENV.
+
+### Model Selection (Seeder)
+
+The seeder queries Ollama and picks the best available model:
 
 | Memory | Model |
 |--------|-------|
@@ -335,7 +355,26 @@ The `setup.sh` script auto-selects optimal models based on available VRAM/RAM:
 | 26-50 GB | qwen2.5:32b-instruct-q5_K_M |
 | > 50 GB | qwen2.5:72b-instruct-q4/q5_K_M |
 
-Override via environment: `OLLAMA_MODEL`, `ENTITY_LLM_DRIVER` (ollama/openai/openrouter/nvidia)
+Override initial model via: `OLLAMA_MODEL` env variable.
+
+### Managing Configurations
+```
+GET    /api/v1/llm/drivers                         # List supported drivers
+GET    /api/v1/llm/configurations                  # List all configurations
+POST   /api/v1/llm/configurations                  # Create new configuration
+PUT    /api/v1/llm/configurations/{id}             # Update configuration
+DELETE /api/v1/llm/configurations/{id}             # Delete configuration
+POST   /api/v1/llm/configurations/{id}/test        # Test connection
+POST   /api/v1/llm/configurations/{id}/default     # Set as default
+POST   /api/v1/llm/configurations/{id}/reset       # Reset circuit breaker
+POST   /api/v1/llm/configurations/reorder          # Reorder priority
+```
+
+### Fallback Behavior
+- Configurations are tried in priority order (highest first)
+- If a config fails, the next one is tried automatically (circuit breaker)
+- If **no** configurations exist: `NoLlmConfigurationException` is thrown, think loop waits without counting failures
+- If **all** configurations fail: failure counter increments, recovery after 30 consecutive failures
 
 ## Memory System
 
@@ -363,6 +402,7 @@ Default embedding model: `nomic-embed-text`
 - Memory files in filesystem, not just in database (for portability)
 - Default entity name is **OpenEntity** (customizable via `ENTITY_NAME`)
 - Tool errors don't crash the application – Events inform the entity
+- **LLM configuration is DB-only** – no ENV-based fallback driver; the `LlmConfigurationSeeder` ensures a default Ollama config exists on every startup
 
 ## Origin
 

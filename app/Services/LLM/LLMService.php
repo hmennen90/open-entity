@@ -2,6 +2,7 @@
 
 namespace App\Services\LLM;
 
+use App\Exceptions\NoLlmConfigurationException;
 use App\Models\LlmConfiguration;
 use App\Services\LLM\Contracts\LLMDriverInterface;
 use Illuminate\Support\Facades\Log;
@@ -16,15 +17,6 @@ class LLMService
 {
     private ?LLMDriverInterface $driver = null;
     private ?LlmConfiguration $currentConfig = null;
-
-    public function __construct(
-        private ?LLMDriverInterface $injectedDriver = null
-    ) {
-        // If a driver is injected (for backwards compatibility), use it
-        if ($injectedDriver) {
-            $this->driver = $injectedDriver;
-        }
-    }
 
     /**
      * Generate a response based on a prompt.
@@ -78,14 +70,15 @@ class LLMService
 
     /**
      * Execute an LLM operation with automatic fallback to alternative configurations.
+     *
+     * @throws NoLlmConfigurationException when no configurations exist in the database
      */
     private function executeWithFallback(callable $operation): string
     {
         $configurations = $this->getAvailableConfigurations();
 
-        // If no database configurations, try the injected driver
-        if ($configurations->isEmpty() && $this->injectedDriver) {
-            return $operation($this->injectedDriver);
+        if ($configurations->isEmpty()) {
+            throw new NoLlmConfigurationException();
         }
 
         $lastException = null;
@@ -126,17 +119,8 @@ class LLMService
             }
         }
 
-        // If all database configs failed and we have an injected driver, try it
-        if ($this->injectedDriver) {
-            try {
-                return $operation($this->injectedDriver);
-            } catch (\Exception $e) {
-                $lastException = $e;
-            }
-        }
-
         // All configurations failed
-        throw $lastException ?? new \RuntimeException('No LLM configurations available');
+        throw $lastException ?? new \RuntimeException('All LLM configurations failed');
     }
 
     /**
@@ -185,11 +169,6 @@ class LLMService
             }
         }
 
-        // Fallback to injected driver
-        if ($this->injectedDriver) {
-            return $this->injectedDriver->isAvailable();
-        }
-
         return false;
     }
 
@@ -206,10 +185,6 @@ class LLMService
             return $this->driver->getModelName();
         }
 
-        if ($this->injectedDriver) {
-            return $this->injectedDriver->getModelName();
-        }
-
         return 'unknown';
     }
 
@@ -218,7 +193,7 @@ class LLMService
      */
     public function getDriver(): ?LLMDriverInterface
     {
-        return $this->driver ?? $this->injectedDriver;
+        return $this->driver;
     }
 
     /**
