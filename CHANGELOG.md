@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/hmennen90/open-entity/compare/v1.7.0...v1.7.1) (2026-02-06)
+
+
+### Bug Fixes
+
+* **entity:** Prevent think loop stalling and fix i18n for wake/sleep messages ([9d8c3bc](https://github.com/hmennen90/open-entity/commit/9d8c3bc7eb8ab5dd866f6e99baa859b5a62312f7))
+
 # [1.7.0](https://github.com/hmennen90/open-entity/compare/v1.6.0...v1.7.0) (2026-02-05)
 
 
