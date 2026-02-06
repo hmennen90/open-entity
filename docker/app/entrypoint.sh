@@ -41,17 +41,10 @@ if [ "$ROLE" = "app" ]; then
         php artisan key:generate --no-interaction
     fi
 
-    # NPM-Dependencies installieren wenn node_modules/ fehlt
-    if [ ! -d "node_modules" ]; then
-        echo "📦 Installing NPM dependencies..."
-        npm install
-    fi
-
-    # Frontend bauen wenn public/build/ fehlt
-    if [ ! -d "public/build" ] || [ ! -f "public/build/manifest.json" ]; then
-        echo "🔨 Building frontend..."
-        npm run build
-    fi
+    # Always install and build Front-End
+    npm install
+    npm run build
+    echo "🔨 Building frontend..."
 
 else
     # === WORKER CONTAINER: Wartet auf Dependencies ===
