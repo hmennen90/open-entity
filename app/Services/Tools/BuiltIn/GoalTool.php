@@ -30,7 +30,9 @@ class GoalTool implements ToolInterface
     {
         return 'Manage goals: create new goals, update progress, add learnings, find similar goals, and complete/abandon goals. ' .
             'Automatically detects similar existing goals to prevent duplicates. ' .
-            'Track learnings to remember what was learned from each goal.';
+            'Track learnings to remember what was learned from each goal. ' .
+            'USE WHEN: You want to create, update, or track progress on your goals. ' .
+            'TIP: Use after completing a research step to document what you learned.';
     }
 
     public function parameters(): array

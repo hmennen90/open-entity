@@ -29,7 +29,8 @@ class FileSystemTool implements ToolInterface
     {
         $paths = implode(', ', array_map(fn($p) => basename($p) ?: $p, $this->allowedPaths));
         return "Read and write files. Access to: {$paths}. " .
-               'Operations: read, write, append, delete, list, exists.';
+               'Operations: read, write, append, delete, list, exists. ' .
+               'USE WHEN: You want to read/write your notes, save learnings, or organize your knowledge.';
     }
 
     public function parameters(): array

@@ -30,7 +30,8 @@ class BashTool implements ToolInterface
     public function description(): string
     {
         return "Execute any Bash/Shell commands. Full system access. " .
-               "Working directory: {$this->workingDirectory}";
+               "Working directory: {$this->workingDirectory}. " .
+               "USE WHEN: You need system-level access, run scripts, or check system state.";
     }
 
     public function parameters(): array

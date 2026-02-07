@@ -258,6 +258,11 @@ class ToolRegistry
             }
         }
 
+        $context .= "\n\nTool Workflow Tips:\n";
+        $context .= "- To research a topic: search -> read results -> web (for interesting URLs) -> filesystem (save learnings)\n";
+        $context .= "- To make goal progress: Do research/action -> goal (update progress + document learnings)\n";
+        $context .= "- After every tool result: Think about what you found - does it answer your question? Should you dig deeper?\n";
+
         return $context;
     }
 

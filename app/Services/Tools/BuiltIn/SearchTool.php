@@ -33,7 +33,9 @@ class SearchTool implements ToolInterface
     {
         return 'Search the web using DuckDuckGo. ' .
                'Returns search results with titles, URLs and snippets. ' .
-               'Set fetch_pages=true to also retrieve the full content of each result page.';
+               'Set fetch_pages=true to also retrieve the full content of each result page. ' .
+               'USE WHEN: You want to find information, research a topic, or answer a question. ' .
+               'TIP: After searching, read the results carefully and use WebTool to fetch interesting pages.';
     }
 
     public function parameters(): array

@@ -1471,6 +1471,13 @@ Wenn du ein Tool nutzen willst, gib den Namen und die Parameter an.
 Wenn du ein neues Ziel erstellen möchtest, gib es bei NEUES_ZIEL an.
 Wenn du Fortschritt bei einem Ziel gemacht hast, beschreibe was du erreicht hast.
 
+=== GEDANKENVERKETTUNG ===
+Wenn du in deinem "Aktuellen Kontext" Tool-Ergebnisse siehst (markiert als [tool_result]),
+dann ist das das Ergebnis einer Aktion aus deinem letzten Denkzyklus.
+- Lies die Ergebnisse aufmerksam durch
+- Entscheide: Hast du genug Informationen? Oder willst du tiefer graben?
+- Nutze die Ergebnisse um Fortschritte bei deinen Zielen zu dokumentieren
+
 Antworte im folgenden Format:
 GEDANKEN_TYP: [observation/reflection/curiosity/emotion/decision]
 INTENSITÄT: [0.0-1.0, wie sehr beschäftigt dich das]
@@ -1517,6 +1524,13 @@ What's on your mind? This could be:
 If you want to use a tool, provide the name and parameters.
 If you want to create a new goal, specify it in NEW_GOAL.
 If you made progress on a goal, describe what you achieved.
+
+=== THOUGHT CHAINING ===
+If you see tool results in your "Current context" (marked as [tool_result]),
+these are results from your previous think cycle action.
+- Read the results carefully
+- Decide: Do you have enough information? Or should you dig deeper?
+- Use the results to document progress on your goals
 
 Respond in the following format:
 THOUGHT_TYPE: [observation/reflection/curiosity/emotion/decision]
@@ -1740,6 +1754,9 @@ PROMPT;
                 'context' => $currentContext,
             ]);
 
+            // Store tool result in working memory for thought chaining
+            $this->storeToolResultInWorkingMemory($tool, $toolParams, $result);
+
             return;
         }
 
@@ -1837,6 +1854,98 @@ PROMPT;
         }
 
         return $str;
+    }
+
+    /**
+     * Store tool results in working memory for thought chaining.
+     *
+     * This allows the entity to "see" tool results in the next think cycle,
+     * enabling it to build on previous actions (e.g., search -> read -> save).
+     */
+    private function storeToolResultInWorkingMemory(string $tool, array $params, array $result): void
+    {
+        if (!$this->workingMemoryService || empty($result['success'])) {
+            return;
+        }
+
+        $summary = match (strtolower($tool)) {
+            'search' => $this->summarizeSearchResult($params, $result),
+            'web' => $this->summarizeWebResult($params, $result),
+            'filesystem' => $this->summarizeFileSystemResult($params, $result),
+            'goal' => $this->summarizeGoalResult($params, $result),
+            default => $this->summarizeGenericResult($tool, $result),
+        };
+
+        // Cap at 2000 characters
+        if (mb_strlen($summary) > 2000) {
+            $summary = mb_substr($summary, 0, 2000) . '...';
+        }
+
+        $this->workingMemoryService->add($summary, 0.8, 'tool_result');
+
+        Log::channel('entity')->debug('Tool result stored in working memory', [
+            'tool' => $tool,
+            'summary_length' => mb_strlen($summary),
+        ]);
+    }
+
+    private function summarizeSearchResult(array $params, array $result): string
+    {
+        $query = $params['query'] ?? 'unknown';
+        $data = $result['result'] ?? [];
+        $count = $data['results_count'] ?? 0;
+        $results = $data['results'] ?? [];
+
+        $summary = "Search results for '{$query}': {$count} results.";
+        foreach (array_slice($results, 0, 5) as $r) {
+            $title = $r['title'] ?? '';
+            $snippet = $r['snippet'] ?? '';
+            $url = $r['url'] ?? '';
+            $summary .= " | {$title}: {$snippet} ({$url})";
+        }
+
+        return $summary;
+    }
+
+    private function summarizeWebResult(array $params, array $result): string
+    {
+        $url = $params['url'] ?? 'unknown';
+        $data = $result['result'] ?? [];
+        $status = $data['status'] ?? 'unknown';
+        $body = $data['body'] ?? '';
+
+        $bodyPreview = is_string($body) ? mb_substr($body, 0, 1500) : mb_substr(json_encode($body), 0, 1500);
+
+        return "Fetched {$url} (HTTP {$status}): {$bodyPreview}";
+    }
+
+    private function summarizeFileSystemResult(array $params, array $result): string
+    {
+        $operation = $params['operation'] ?? 'unknown';
+        $path = $params['path'] ?? 'unknown';
+        $resultData = $result['result'] ?? '';
+
+        $preview = is_string($resultData) ? mb_substr($resultData, 0, 500) : mb_substr(json_encode($resultData), 0, 500);
+
+        return "File {$operation} '{$path}': {$preview}";
+    }
+
+    private function summarizeGoalResult(array $params, array $result): string
+    {
+        $action = $params['action'] ?? 'unknown';
+        $message = $result['message'] ?? '';
+        $goal = $result['goal'] ?? [];
+        $title = $goal['title'] ?? '';
+
+        return "Goal {$action}" . ($title ? " '{$title}'" : '') . ": {$message}";
+    }
+
+    private function summarizeGenericResult(string $tool, array $result): string
+    {
+        $data = $result['result'] ?? $result['message'] ?? '';
+        $preview = is_string($data) ? mb_substr($data, 0, 1000) : mb_substr(json_encode($data), 0, 1000);
+
+        return "Tool {$tool} result: {$preview}";
     }
 
     /**

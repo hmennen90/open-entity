@@ -27,7 +27,9 @@ class WebTool implements ToolInterface
     public function description(): string
     {
         return 'Execute HTTP requests (GET, POST). ' .
-               'Can load web pages, call APIs, and send data.';
+               'Can load web pages, call APIs, and send data. ' .
+               'USE WHEN: You have a specific URL to fetch, need to call an API, or want to read a web page found via SearchTool. ' .
+               'TIP: Use SearchTool first to find URLs, then WebTool to fetch their content.';
     }
 
     public function parameters(): array
