@@ -1,3 +1,10 @@
+## [1.7.3](https://github.com/hmennen90/open-entity/compare/v1.7.2...v1.7.3) (2026-02-07)
+
+
+### Bug Fixes
+
+* think worker loop fixed ([d7887ca](https://github.com/hmennen90/open-entity/commit/d7887ca126bf9cb913a21eb781691b22c5aa71f8))
+
 ## [1.7.2](https://github.com/hmennen90/open-entity/compare/v1.7.1...v1.7.2) (2026-02-06)
 
 
