@@ -1,3 +1,10 @@
+## [1.7.4](https://github.com/hmennen90/open-entity/compare/v1.7.3...v1.7.4) (2026-02-07)
+
+
+### Bug Fixes
+
+* Tools are now registered with usage hints for the LLM. Thought Results are now processed in working memory ([8cffc81](https://github.com/hmennen90/open-entity/commit/8cffc8123a623f47c4890caa99c742e764796cec))
+
 ## [1.7.3](https://github.com/hmennen90/open-entity/compare/v1.7.2...v1.7.3) (2026-02-07)
 
 
